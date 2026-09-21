@@ -1,22 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { FoodPicker } from '../components/FoodPicker';
 import { Icon } from '../components/Icon';
 import { LoadBars } from '../components/LoadBars';
-import { Header, LevelDot, Segmented, groupsText } from '../components/ui';
+import { NutritionSummary } from '../components/NutritionSummary';
+import { Header, LevelDot, groupsText } from '../components/ui';
 import { db } from '../db/db';
 import { useFoods } from '../db/hooks';
-import { nowTime, today } from '../lib/dates';
+import { nowTime, toTimestamp, today } from '../lib/dates';
 import { computeLoad, stackingWarnings } from '../lib/fodmapLoad';
-import { GROUP_LABEL, type MealItem, type MealType } from '../types';
+import { MIN_MEAL_GAP_HOURS, fmtDuration, mealTitle, neighbourMeals, tooSoon } from '../lib/mealTiming';
+import { itemNutrition, macroLine, sumNutrition } from '../lib/nutrition';
+import { GROUP_LABEL, type Meal, type MealItem } from '../types';
 
-function defaultType(time: string): MealType {
-  const h = Number(time.slice(0, 2));
-  if (h < 11) return 'breakfast';
-  if (h < 16) return 'lunch';
-  if (h < 21) return 'dinner';
-  return 'snack';
-}
+const NAME_SUGGESTIONS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
 export default function MealForm() {
   const { id } = useParams();
@@ -24,40 +22,59 @@ export default function MealForm() {
   const nav = useNavigate();
   const { map } = useFoods();
   const isNew = id === 'new';
+  const mealId = isNew ? undefined : Number(id);
 
   const [date, setDate] = useState(params.get('date') ?? today());
   const [time, setTime] = useState(nowTime());
-  const [type, setType] = useState<MealType>(defaultType(nowTime()));
+  const [name, setName] = useState('');
   const [items, setItems] = useState<MealItem[]>([]);
   const [note, setNote] = useState('');
   const [picking, setPicking] = useState(false);
 
+  const allMeals = useLiveQuery(() => db.meals.toArray(), []) ?? [];
+
   useEffect(() => {
-    if (isNew) return;
-    db.meals.get(Number(id)).then((m) => {
+    if (mealId === undefined) return;
+    db.meals.get(mealId).then((m) => {
       if (!m) return;
       setDate(m.date);
       setTime(m.time);
-      setType(m.type);
+      // Older logs used a fixed type; carry it over as the name.
+      setName(m.name ?? (m.type ? mealTitle(m) : ''));
       setItems(m.items);
       setNote(m.note ?? '');
     });
-  }, [id, isNew]);
+  }, [mealId]);
 
   const update = (idx: number, patch: Partial<MealItem>) => setItems(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   const warnings = stackingWarnings(items, map);
   const load = computeLoad(items, map);
+  const nutrition = sumNutrition(items, map);
+
+  const usedNames = useMemo(
+    () => [...new Set([...NAME_SUGGESTIONS, ...allMeals.map((m) => m.name?.trim()).filter((n): n is string => !!n)])],
+    [allMeals],
+  );
+
+  // Spacing between this meal and the ones either side of it.
+  const at = toTimestamp(date, time);
+  const { prev, next } = neighbourMeals(allMeals, at, mealId);
+  const prevGap = prev && at - prev.t;
+  const nextGap = next && next.t - at;
+  const prevTooSoon = prevGap !== undefined && tooSoon(prevGap);
+  const nextTooSoon = nextGap !== undefined && tooSoon(nextGap);
+  const describe = (m: Meal) => `${mealTitle(m)}${m.date !== date ? ` on ${m.date}` : ''} at ${m.time}`;
 
   const save = async () => {
-    const meal = { date, time, type, items, note: note.trim() || undefined };
-    if (isNew) await db.meals.add(meal);
-    else await db.meals.update(Number(id), meal);
+    const meal: Meal = { date, time, name: name.trim() || undefined, items, note: note.trim() || undefined };
+    if (mealId === undefined) await db.meals.add(meal);
+    else await db.meals.put({ ...meal, id: mealId });
     nav(-1);
   };
 
   const remove = async () => {
     if (!confirm('Delete this meal?')) return;
-    await db.meals.delete(Number(id));
+    await db.meals.delete(mealId!);
     nav(-1);
   };
 
@@ -75,26 +92,46 @@ export default function MealForm() {
         }
       />
       <section className="card">
-        <Segmented
-          value={type}
-          onChange={setType}
-          options={[
-            { value: 'breakfast', label: 'Breakfast' },
-            { value: 'lunch', label: 'Lunch' },
-            { value: 'dinner', label: 'Dinner' },
-            { value: 'snack', label: 'Snack' },
-          ]}
-        />
+        <label className="field first">
+          <span>Name (optional)</span>
+          <input list="meal-names" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Breakfast, post-gym snack" />
+          <datalist id="meal-names">
+            {usedNames.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+        </label>
         <div className="row-fields">
           <label className="field">
             <span>Date</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
           </label>
           <label className="field">
             <span>Time</span>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <input type="time" value={time} onChange={(e) => e.target.value && setTime(e.target.value)} />
           </label>
         </div>
+        {(prevTooSoon || nextTooSoon) && (
+          <div className="callout warn-callout">
+            <Icon name="warn" size={16} />{' '}
+            {prevTooSoon && (
+              <>
+                Only <b>{fmtDuration(prevGap!)}</b> after your last meal ({describe(prev!.meal)}).{' '}
+              </>
+            )}
+            {nextTooSoon && (
+              <>
+                Only <b>{fmtDuration(nextGap!)}</b> before your next meal ({describe(next!.meal)}).{' '}
+              </>
+            )}
+            Try to leave {MIN_MEAL_GAP_HOURS}–4 hours between meals so FODMAPs from each meal don't add up.
+          </div>
+        )}
+        {!prevTooSoon && !nextTooSoon && prevGap !== undefined && (
+          <p className="muted small gap-note">
+            {fmtDuration(prevGap)} since your last meal ({describe(prev!.meal)}).
+          </p>
+        )}
       </section>
 
       <section className="card">
@@ -104,6 +141,7 @@ export default function MealForm() {
           {items.map((it, idx) => {
             const f = map.get(it.foodId);
             const s = f?.servings[it.servingIndex];
+            const n = itemNutrition(it, map);
             return (
               <li key={idx} className="meal-item">
                 <div className="meal-item-head">
@@ -131,6 +169,7 @@ export default function MealForm() {
                     </button>
                   </div>
                 </div>
+                {n && <div className="item-macros">{macroLine(n)}</div>}
                 {s && s.level !== 'low' && (
                   <div className={`hint hint-${s.level}`}>
                     {s.level === 'high' ? 'High' : 'Moderate'} in {groupsText(s)}
@@ -153,20 +192,26 @@ export default function MealForm() {
       </section>
 
       {items.length > 0 && (
-        <section className="card">
-          <h2>Meal FODMAP load</h2>
-          <LoadBars load={load} />
-          {warnings.map((w) => (
-            <div key={w.group} className="callout warn-callout">
-              <b>{GROUP_LABEL[w.group]} is stacking up.</b> {w.foods.join(', ')} together add up to a high {GROUP_LABEL[w.group].toLowerCase()} load.
-              Consider a smaller portion or eating one of them at another meal.
-            </div>
-          ))}
-        </section>
+        <>
+          <section className="card">
+            <h2>Meal FODMAP load</h2>
+            <LoadBars load={load} />
+            {warnings.map((w) => (
+              <div key={w.group} className="callout warn-callout">
+                <b>{GROUP_LABEL[w.group]} is stacking up.</b> {w.foods.join(', ')} together add up to a high {GROUP_LABEL[w.group].toLowerCase()}{' '}
+                load. Consider a smaller portion or eating one of them at another meal.
+              </div>
+            ))}
+          </section>
+          <section className="card">
+            <h2>Meal nutrition</h2>
+            <NutritionSummary total={nutrition.total} missing={nutrition.missing} />
+          </section>
+        </>
       )}
 
       <section className="card">
-        <label className="field">
+        <label className="field first">
           <span>Notes</span>
           <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Restaurant, brand, how it was cooked…" />
         </label>

@@ -34,7 +34,22 @@ export interface Serving {
   level: Level;
   /** FODMAP groups that drive a moderate/high rating at this serving. */
   groups: Partial<Record<Group, Level>>;
+  /** Weight in grams (ml for drinks) of this serving, for nutrition totals. */
+  grams?: number;
 }
+
+/** Energy and macronutrients. On a food it is per 100g (100ml for drinks). */
+export interface Nutrition {
+  kcal: number;
+  protein: number;
+  /** Total carbohydrate, including fibre. */
+  carbs: number;
+  fat: number;
+  fibre: number;
+}
+
+export const NUTRIENTS = ['kcal', 'protein', 'carbs', 'fat', 'fibre'] as const;
+export type Nutrient = (typeof NUTRIENTS)[number];
 
 export interface Food {
   id: string;
@@ -51,10 +66,13 @@ export interface Food {
   /** Weight (g, as eaten) or volume (ml) of glServing, for comparing GL per 100g / per glass. */
   glAmount?: number;
   glUnit?: 'g' | 'ml';
+  /** Per 100g as eaten (per 100ml for drinks). */
+  nutrition?: Nutrition;
   custom?: boolean;
   hidden?: boolean;
 }
 
+/** Legacy fixed meal types; kept so older logs still display. New meals use an optional name. */
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export interface MealItem {
@@ -67,7 +85,10 @@ export interface Meal {
   id?: number;
   date: string; // YYYY-MM-DD local
   time: string; // HH:MM
-  type: MealType;
+  /** Optional label such as "Breakfast" or "Post-gym snack". */
+  name?: string;
+  /** Legacy: older logs had a fixed type instead of a name. */
+  type?: MealType;
   items: MealItem[];
   note?: string;
 }
@@ -113,6 +134,8 @@ export interface Settings {
   phase: Phase;
   elimStart: string;
   theme: 'system' | 'light' | 'dark';
+  /** Optional daily nutrition targets. */
+  targets?: Partial<Nutrition>;
 }
 
 export type ChallengeGroup =

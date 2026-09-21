@@ -12,8 +12,9 @@ import { OUTCOME_LABEL } from '../lib/challengeOutcome';
 import { foodSymptomStats } from '../lib/correlations';
 import { addDays, dateRange, formatDate, today } from '../lib/dates';
 import { average, dailyScores } from '../lib/symptoms';
+import { fmtNutrient, NUTRIENT_LABEL, sumNutrition } from '../lib/nutrition';
 import { toleranceMap } from '../lib/tolerance';
-import type { DayLog } from '../types';
+import { NUTRIENTS, type DayLog } from '../types';
 
 const AXIS = { fontSize: 11, fill: 'var(--muted)' };
 const TOOLTIP = {
@@ -62,7 +63,12 @@ export default function Insights() {
       { label: 'Exercised (20+ min)', a: split((d) => (d.exerciseMin ?? 0) >= 20), b: split((d) => d.exerciseMin !== undefined && d.exerciseMin < 20), bLabel: 'less exercise' },
     ].filter((f) => f.a !== undefined && f.b !== undefined);
 
-    return { scores, trend, bristol, corr, factors, avg: average([...scores.values()]) };
+    // Average intake over days that have at least one meal logged.
+    const mealDates = [...new Set(data.meals.map((m) => m.date))];
+    const perDay = mealDates.map((d) => sumNutrition(data.meals.filter((m) => m.date === d).flatMap((m) => m.items), map).total);
+    const intake = perDay.length ? Object.fromEntries(NUTRIENTS.map((n) => [n, average(perDay.map((t) => t[n]))!])) : undefined;
+
+    return { scores, trend, bristol, corr, factors, avg: average([...scores.values()]), intake, intakeDays: perDay.length };
   }, [data, map, start, end]);
 
   return (
@@ -111,6 +117,21 @@ export default function Insights() {
               <p className="empty">Log symptoms to see your trend.</p>
             )}
           </section>
+
+          {derived.intake && (
+            <section className="card">
+              <h2>Average daily intake</h2>
+              <p className="muted small">Across {derived.intakeDays} day{derived.intakeDays > 1 ? 's' : ''} with meals logged.</p>
+              <div className="nutrition-grid">
+                {NUTRIENTS.map((n) => (
+                  <div key={n} className="nutrient">
+                    <span className="nutrient-label">{NUTRIENT_LABEL[n]}</span>
+                    <span className="nutrient-value">{fmtNutrient(n, derived.intake![n])}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {derived.factors.length > 0 && (
             <section className="card">

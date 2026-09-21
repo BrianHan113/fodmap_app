@@ -1,5 +1,6 @@
 import type { Category, Food, FructanSource, Group, Level, Serving } from '../types';
 import { GL_DATA } from './glycemic';
+import { NUTRITION, TIER_GRAMS } from './nutrition';
 
 /*
  * Compact food table. Serving thresholds are approximations compiled from publicly
@@ -588,8 +589,15 @@ const FODMAP_FREE = new Set(
 export const SEED_FOODS: Food[] = buildFoods().map((f) => {
   const gl = GL_DATA[f.id];
   const amount = gl?.[2]?.match(/^(\d+(?:\.\d+)?)(g|ml)$/);
+  const n = NUTRITION[f.id];
+  const servings = f.servings.map((s, i) => {
+    const grams = TIER_GRAMS[`${f.id}#${i}`] ?? Number(s.label.match(/(\d+(?:\.\d+)?)\s*(?:g|ml)\b/i)?.[1] ?? NaN);
+    return Number.isFinite(grams) ? { ...s, grams } : s;
+  });
   return {
     ...f,
+    servings,
+    ...(n && { nutrition: { kcal: n[0], protein: n[1], carbs: n[2], fat: n[3], fibre: n[4] } }),
     ...(gl && { gl: gl[0], glServing: gl[1] }),
     ...(amount && { glAmount: Number(amount[1]), glUnit: amount[2] as 'g' | 'ml' }),
     ...(FODMAP_FREE.has(f.id) && { fodmapFree: true }),

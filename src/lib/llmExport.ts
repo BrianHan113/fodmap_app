@@ -5,6 +5,8 @@ import { OUTCOME_LABEL } from './challengeOutcome';
 import { dateRange, formatDate } from './dates';
 import { computeLoad, stackingWarnings } from './fodmapLoad';
 import { glDensity, glDensityText } from './glycemic';
+import { mealTitle } from './mealTiming';
+import { macroLine, sumNutrition } from './nutrition';
 import { eliminationDay } from './phase';
 import { average, entryScore } from './symptoms';
 
@@ -24,7 +26,6 @@ export interface LlmExportInput {
 }
 
 const PHASE_LABEL = { elimination: 'Elimination', reintroduction: 'Reintroduction', personalization: 'Personalization' };
-const MEAL_LABEL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
 
 const INSTRUCTIONS = `You are helping me follow the low-FODMAP diet for IBS-type gut symptoms, using the Monash University approach: elimination (2–6 weeks) → reintroduction (one FODMAP group at a time, 3 increasing doses over 3 days, then a washout) → personalization. Below is my own diary exported from a tracking app for the date range shown.
 
@@ -43,6 +44,7 @@ const SCALES = `- Symptoms: bloating, abdominal pain, gas, nausea, each 0–10 (
 - Bowel movements: Bristol stool type 1–7 (3–4 ideal, 1–2 constipated, 6–7 diarrhoea); urgency 0–3.
 - Daily check-in: overall gut day 0–10 (10 = great), mood 1–5, stress 0–10, sleep hours and quality 1–5, exercise minutes, water glasses.
 - Meal FODMAP load per group: each moderate serving adds 1, each high serving adds 2 (≥2 in one meal = high load).
+- Nutrition: approximate calories and macros from typical food composition values; carbs include fibre.
 - GL = estimated glycaemic load for the typical serving stated, plus GL per 100g (per 250ml for drinks) to compare foods fairly. Bands: low ≤10, medium 11–19, high ≥20. GL scales with the amount actually eaten and is separate from the FODMAP rating.`;
 
 function fmtNum(n: number | undefined, digits = 1): string {
@@ -71,7 +73,8 @@ function mealLine(meal: Meal, foods: Map<string, Food>): string {
     return `${f?.name ?? 'Unknown food'}, ${qty}${s?.label ?? '?'}${rating}`;
   });
   const load = loadText(meal, foods);
-  return `- ${meal.time} ${MEAL_LABEL[meal.type]}: ${items.join('; ')}${load ? `. Meal ${load}` : ''}${meal.note ? `. Note: ${meal.note}` : ''}`;
+  const nutrition = sumNutrition(meal.items, foods).total;
+  return `- ${meal.time} ${mealTitle(meal)}: ${items.join('; ')}${load ? `. Meal ${load}` : ''}. Nutrition: ${macroLine(nutrition)}${meal.note ? `. Note: ${meal.note}` : ''}`;
 }
 
 function checkinLine(d: DayLog): string {
@@ -119,6 +122,10 @@ export function buildLlmExport(input: LlmExportInput): string {
   else phase += `. Elimination started ${settings.elimStart}`;
   out.push(phase);
   const challenges = [...input.challenges].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const t = settings.targets;
+  if (t && Object.values(t).some((v) => v)) {
+    out.push(`- Daily nutrition targets: ${Object.entries(t).filter(([, v]) => v).map(([k, v]) => `${k} ${v}${k === 'kcal' ? '' : 'g'}`).join(', ')}`);
+  }
   if (challenges.length) {
     out.push('- Reintroduction challenges so far:');
     for (const c of challenges) out.push(`  ${challengeSummary(c)}`);
@@ -174,6 +181,10 @@ export function buildLlmExport(input: LlmExportInput): string {
     }
     out.push('', `### ${formatDate(date, { weekday: 'short', day: 'numeric', month: 'short' })} (${date})`);
     if (check) out.push(checkinLine(check));
+    if (dayMeals.length) {
+      const day = sumNutrition(dayMeals.flatMap((m) => m.items), foods);
+      out.push(`- Day nutrition total: ${macroLine(day.total)}, fibre ${Math.round(day.total.fibre)}g${day.missing ? ` (${day.missing} item(s) without data not counted)` : ''}`);
+    }
     out.push(...doses);
     type Ev = { time: string; line: string };
     const events: Ev[] = [

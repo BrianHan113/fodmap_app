@@ -5,7 +5,8 @@ import { Header, Segmented } from '../components/ui';
 import { db } from '../db/db';
 import { useFoods } from '../db/hooks';
 import { seedFood } from '../lib/foods';
-import { CATEGORIES, GROUPS, GROUP_LABEL, type Food, type FructanSource, type Level, type Serving } from '../types';
+import { NUTRIENT_LABEL, NUTRIENT_UNIT } from '../lib/nutrition';
+import { CATEGORIES, GROUPS, GROUP_LABEL, NUTRIENTS, type Food, type FructanSource, type Level, type Serving } from '../types';
 
 const LEVELS: { value: Level; label: string }[] = [
   { value: 'low', label: 'Low' },
@@ -53,6 +54,7 @@ export default function FoodEditor() {
     const servings = food.servings.map((s) => ({
       label: s.label.trim(),
       level: s.level,
+      grams: s.grams || Number(s.label.match(/(\d+(?:\.\d+)?)\s*(?:g|ml)\b/i)?.[1]) || undefined,
       // A low serving has no driving groups; otherwise groups take the serving's level.
       groups: s.level === 'low' ? {} : Object.fromEntries(Object.keys(s.groups).map((g) => [g, s.level])),
     }));
@@ -144,6 +146,16 @@ export default function FoodEditor() {
           <div key={i} className="tier-edit">
             <div className="tier-edit-head">
               <input value={s.label} onChange={(e) => setServing(i, { label: e.target.value })} placeholder="e.g. 1/2 cup (75g)" />
+              <input
+                className="grams-input"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={s.grams ?? ''}
+                onChange={(e) => setServing(i, { grams: e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)) })}
+                placeholder="grams"
+                aria-label="Serving weight in grams"
+              />
               {food.servings.length > 1 && (
                 <button className="icon-btn" onClick={() => setFood({ ...food, servings: food.servings.filter((_, j) => j !== i) })} aria-label="Remove tier">
                   <Icon name="close" size={18} />
@@ -165,6 +177,30 @@ export default function FoodEditor() {
         <button className="btn block" onClick={() => setFood({ ...food, servings: [...food.servings, { label: '', level: 'moderate', groups: {} }] })}>
           <Icon name="plus" size={18} /> Add tier
         </button>
+      </section>
+
+      <section className="card">
+        <h2>Nutrition per 100g (optional)</h2>
+        <p className="muted small">Per 100ml for drinks. Needed for meal and daily totals, together with each serving's weight above.</p>
+        <div className="targets">
+          {NUTRIENTS.map((n) => (
+            <label key={n} className="field">
+              <span>
+                {NUTRIENT_LABEL[n]} ({NUTRIENT_UNIT[n]})
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={food.nutrition?.[n] ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value === '' ? 0 : Math.max(0, Number(e.target.value));
+                  setFood({ ...food, nutrition: { kcal: 0, protein: 0, carbs: 0, fat: 0, fibre: 0, ...food.nutrition, [n]: v } });
+                }}
+              />
+            </label>
+          ))}
+        </div>
       </section>
 
       <section className="card">

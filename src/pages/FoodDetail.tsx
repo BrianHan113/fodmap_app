@@ -4,9 +4,10 @@ import { Icon } from '../components/Icon';
 import { Header, LevelBadge, VerdictBadge } from '../components/ui';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { safeServing } from '../lib/foods';
+import { fmtNutrient, NUTRIENT_LABEL } from '../lib/nutrition';
 import { GL_LEVEL_TEXT, glDensity, glDensityText, glLevel, glServingShort } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
-import { GROUP_LABEL, type Group } from '../types';
+import { GROUP_LABEL, NUTRIENTS, type Group } from '../types';
 
 const GROUP_HINT: Record<Group, string> = {
   fructose: 'Excess fructose (more fructose than glucose).',
@@ -176,6 +177,43 @@ export default function FoodDetail() {
             How much a given amount of food raises blood sugar, combining its GI and carbohydrate. Each number applies only to the amount shown:
             eat twice as much and the GL doubles. Low ≤10, medium 11–19, high ≥20. Estimated from published GI tables; it varies with ripeness, cooking and portion, and is separate from the FODMAP rating.
           </p>
+        </section>
+      )}
+
+      {food.nutrition && (
+        <section className="card">
+          <h2>Nutrition</h2>
+          <table className="table nutrition-table">
+            <thead>
+              <tr>
+                <th />
+                <th className="num">{food.category === 'Drinks' ? '100ml' : '100g'}</th>
+                {food.servings
+                  .filter((s) => s.grams !== undefined)
+                  .map((s, i) => (
+                    <th key={i} className="num">
+                      {s.label.replace(/\s*\(.*\)/, '')}
+                    </th>
+                  ))}
+              </tr>
+            </thead>
+            <tbody>
+              {NUTRIENTS.map((n) => (
+                <tr key={n}>
+                  <td>{NUTRIENT_LABEL[n]}</td>
+                  <td className="num">{fmtNutrient(n, food.nutrition![n])}</td>
+                  {food.servings
+                    .filter((s) => s.grams !== undefined)
+                    .map((s, i) => (
+                      <td key={i} className="num">
+                        {fmtNutrient(n, (food.nutrition![n] * s.grams!) / 100)}
+                      </td>
+                    ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="muted small">Approximate typical values. Carbs include fibre. Brands and recipes vary.</p>
         </section>
       )}
 

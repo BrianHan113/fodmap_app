@@ -1,19 +1,21 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
 import { db } from '../db/db';
-import { useFoods } from '../db/hooks';
+import { useFoods, useSettings } from '../db/hooks';
 import { computeLoad, stackingWarnings } from '../lib/fodmapLoad';
+import { mealTitle } from '../lib/mealTiming';
+import { macroLine, sumNutrition } from '../lib/nutrition';
 import { entryScore, severityWord } from '../lib/symptoms';
 import { GROUP_LABEL } from '../types';
 import { BRISTOL } from '../data/bristol';
 import { Icon } from './Icon';
 import { LoadBars } from './LoadBars';
+import { NutritionSummary } from './NutritionSummary';
 import { Empty, LevelDot } from './ui';
-
-const MEAL_LABEL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
 
 export function DayTimeline({ date }: { date: string }) {
   const { map } = useFoods();
+  const settings = useSettings();
   const data = useLiveQuery(async () => {
     const [meals, symptoms, bowel, day] = await Promise.all([
       db.meals.where('date').equals(date).toArray(),
@@ -28,6 +30,8 @@ export function DayTimeline({ date }: { date: string }) {
   const { meals, symptoms, bowel, day } = data;
   const allItems = meals.flatMap((m) => m.items);
   const dayLoad = computeLoad(allItems, map);
+  const dayNutrition = sumNutrition(allItems, map);
+  const hasTargets = !!settings.targets && Object.values(settings.targets).some((v) => v);
 
   type Ev = { time: string; key: string; node: React.ReactNode };
   const events: Ev[] = [
@@ -40,7 +44,7 @@ export function DayTimeline({ date }: { date: string }) {
           <Link to={`/meal/${m.id}`} className="event">
             <span className="event-time">{m.time}</span>
             <div className="grow">
-              <div className="event-title">{MEAL_LABEL[m.type]}</div>
+              <div className="event-title">{mealTitle(m)}</div>
               <ul className="event-items">
                 {m.items.map((i, idx) => {
                   const f = map.get(i.foodId);
@@ -58,6 +62,7 @@ export function DayTimeline({ date }: { date: string }) {
                   <Icon name="warn" size={14} /> {GROUP_LABEL[w.group]} stacks up in this meal
                 </div>
               ))}
+              {m.items.length > 0 && <div className="item-macros">{macroLine(sumNutrition(m.items, map).total)}</div>}
               {m.note && <div className="muted small">{m.note}</div>}
             </div>
           </Link>
@@ -105,6 +110,13 @@ export function DayTimeline({ date }: { date: string }) {
 
   return (
     <>
+      {(allItems.length > 0 || hasTargets) && (
+        <section className="card">
+          <h2>Nutrition</h2>
+          <NutritionSummary total={dayNutrition.total} missing={dayNutrition.missing} targets={hasTargets ? settings.targets : undefined} />
+          {!hasTargets && <p className="muted small">Set daily targets in Settings to see progress bars.</p>}
+        </section>
+      )}
       {allItems.length > 0 && (
         <section className="card">
           <h2>FODMAP load</h2>

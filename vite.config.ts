@@ -28,5 +28,7 @@ export default defineConfig({
       workbox: { globPatterns: ['**/*.{js,css,html,svg,png}'] },
     }),
   ],
+  // The bundled food, GL and nutrition tables make the main chunk ~160 kB gzipped; it's cached offline by the service worker.
+  build: { chunkSizeWarningLimit: 800 },
   test: { environment: 'node' },
 } as any);

@@ -6,7 +6,8 @@ import { db } from '../db/db';
 import { saveSettings, useFoods, useSettings } from '../db/hooks';
 import { exportData, importData, resetData } from '../lib/backup';
 import { today } from '../lib/dates';
-import type { Phase } from '../types';
+import { NUTRIENT_LABEL, NUTRIENT_UNIT } from '../lib/nutrition';
+import { NUTRIENTS, type Phase } from '../types';
 
 export default function SettingsPage() {
   const settings = useSettings();
@@ -64,6 +65,30 @@ export default function SettingsPage() {
           <span>Elimination start date</span>
           <input type="date" value={settings.elimStart} onChange={(e) => e.target.value && saveSettings({ elimStart: e.target.value })} />
         </label>
+      </section>
+
+      <section className="card">
+        <h2>Daily nutrition targets</h2>
+        <p className="muted small">Optional. Leave blank for no target. Shown as progress bars on each day.</p>
+        <div className="targets">
+          {NUTRIENTS.map((n) => (
+            <label key={n} className="field">
+              <span>
+                {NUTRIENT_LABEL[n]} ({NUTRIENT_UNIT[n]})
+              </span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={settings.targets?.[n] ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value === '' ? undefined : Math.max(0, Number(e.target.value));
+                  saveSettings({ targets: { ...settings.targets, [n]: v } });
+                }}
+              />
+            </label>
+          ))}
+        </div>
       </section>
 
       <section className="card">

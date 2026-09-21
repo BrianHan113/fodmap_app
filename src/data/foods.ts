@@ -572,7 +572,22 @@ export function buildFoods(rows: Row[] = ROWS): Food[] {
   });
 }
 
+/**
+ * Foods with no FODMAPs at all: plain animal protein, pure fats, pure sugars and plain
+ * starches. Their serving is just a typical portion, not a FODMAP limit. Deliberately
+ * conservative: foods with trace FODMAPs (butter, cheese, herbs, spices) are not listed.
+ */
+const FODMAP_FREE = new Set(
+  `beef-plain chicken-plain pork-plain lamb-plain turkey-plain fish-fresh-salmon-cod-etc tuna-canned-in-oil-or-water
+  shrimp-prawns eggs bacon olive-oil-vegetable-oils garlic-infused-oil onion-infused-oil ghee water-sparkling-water
+  spirits-gin-vodka-whisky sugar-white-brown-raw stevia rice-white-basmati-jasmine rice-brown potato-white salt-pepper`
+    .split(/\s+/)
+    .filter(Boolean),
+);
+
 export const SEED_FOODS: Food[] = buildFoods().map((f) => {
   const gl = GL_DATA[f.id];
-  return gl ? { ...f, gl: gl[0], glServing: gl[1] } : f;
+  return { ...f, ...(gl && { gl: gl[0], glServing: gl[1] }), ...(FODMAP_FREE.has(f.id) && { fodmapFree: true }) };
 });
+
+export const FODMAP_FREE_IDS: ReadonlySet<string> = FODMAP_FREE;

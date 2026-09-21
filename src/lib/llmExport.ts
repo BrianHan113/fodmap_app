@@ -63,7 +63,8 @@ function mealLine(meal: Meal, foods: Map<string, Food>): string {
     const qty = i.qty !== 1 ? `${i.qty}× ` : '';
     const groups = s ? (Object.keys(s.groups) as Group[]).map((g) => GROUP_LABEL[g].toLowerCase()).join(', ') : '';
     const gl = f?.gl === undefined ? '' : f.gl === 0 ? '; GL 0' : `; GL ${f.gl} per ${f.glServing}`;
-    const rating = s ? ` [${s.level}${groups ? `: ${groups}` : ''}${gl}]` : '';
+    const level = f?.fodmapFree ? 'no FODMAPs' : s?.level;
+    const rating = s ? ` [${level}${groups ? `: ${groups}` : ''}${gl}]` : '';
     return `${f?.name ?? 'Unknown food'}, ${qty}${s?.label ?? '?'}${rating}`;
   });
   const load = loadText(meal, foods);

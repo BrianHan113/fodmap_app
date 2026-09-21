@@ -85,11 +85,6 @@ export function sortFoods(foods: Food[], sort: FoodSort, favourites: Set<string>
   });
 }
 
-/** Low FODMAP at every listed serving: no amount-based limit. */
-export function lowAtAnyAmount(food: Food): boolean {
-  return food.servings.every((s) => s.level === 'low');
-}
-
 export const BIG_PORTION_G = 75;
 export const BIG_PORTION_ML = 125;
 
@@ -105,6 +100,16 @@ export function bigSafePortion(food: Food): boolean {
   const amt = safe && servingAmount(safe.label);
   if (!amt) return false;
   return amt.amount >= (amt.unit === 'g' ? BIG_PORTION_G : BIG_PORTION_ML);
+}
+
+/**
+ * Safe to eat in large portions: either FODMAP-free, or low at every listed serving with
+ * the largest one at least 75g / 125ml. Foods only tested at small amounts (soy sauce,
+ * maple syrup, spices) are excluded because larger amounts are unknown.
+ */
+export function lowInLargePortions(food: Food): boolean {
+  if (food.fodmapFree) return true;
+  return food.servings.every((s) => s.level === 'low') && bigSafePortion(food);
 }
 
 export function matchesQuery(food: Food, q: string): boolean {

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
-import { bigSafePortion, lowAtAnyAmount, matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
-import { glLevel } from '../lib/glycemic';
+import { bigSafePortion, lowInLargePortions, matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
+import { glBasisText, glLevel } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { CATEGORIES, type Food } from '../types';
 import { Icon } from './Icon';
@@ -12,7 +12,7 @@ export interface FoodFilters {
   q: string;
   cat: string;
   lowOnly: boolean;
-  /** Only foods that are low at every listed serving. */
+  /** Only foods that are FODMAP-free or low even in large portions. */
   lowAll: boolean;
   /** Only foods whose low-FODMAP serving is at least 75g / 125ml. */
   bigSafe: boolean;
@@ -62,7 +62,7 @@ export function FoodBrowser({
           matchesQuery(f, q) &&
           (!cat || f.category === cat) &&
           (!lowOnly || f.servings.some((s) => s.level === 'low')) &&
-          (!lowAll || lowAtAnyAmount(f)) &&
+          (!lowAll || lowInLargePortions(f)) &&
           (!bigSafe || bigSafePortion(f)) &&
           (!favOnly || favourites.has(f.id)) &&
           (!recent || recentSet.has(f.id)),
@@ -105,9 +105,9 @@ export function FoodBrowser({
         <button
           className={`chip ${lowAll ? 'on' : ''}`}
           onClick={() => onChange({ lowAll: !lowAll })}
-          title="Low FODMAP at every listed serving size"
+          title="No FODMAPs, or low FODMAP at every listed size with a large (75g+) safe portion"
         >
-          Low at any amount
+          Low even in large portions
         </button>
         <button
           className={`chip ${bigSafe ? 'on' : ''}`}
@@ -149,11 +149,11 @@ export function FoodBrowser({
               <LevelDot level={f.servings[0].level} />
               <span className="grow">
                 <span className="row-title">{f.name}</span>
-                <span className="row-sub">{safe ? `Low: up to ${safe.label}` : 'No low-FODMAP serving'}</span>
+                <span className="row-sub">{f.fodmapFree ? 'No FODMAPs' : safe ? `Low: up to ${safe.label}` : 'No low-FODMAP serving'}</span>
               </span>
               {verdict && verdict !== 'untested' && <VerdictBadge verdict={verdict} />}
               {f.gl !== undefined && (
-                <span className={`gl-tag gl-${glLevel(f.gl)}`} title={`Glycaemic load ${f.gl} per ${f.glServing}`}>
+                <span className={`gl-tag gl-${glLevel(f.gl)}`} title={`Glycaemic load ${f.gl} ${glBasisText(f.glServing)}`}>
                   GL {f.gl}
                 </span>
               )}

@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon';
 import { Header, LevelBadge, VerdictBadge } from '../components/ui';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { safeServing } from '../lib/foods';
-import { GL_LEVEL_LABEL, glLevel } from '../lib/glycemic';
+import { GL_LEVEL_LABEL, glBasisText, glLevel } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { GROUP_LABEL, type Group } from '../types';
 
@@ -53,7 +53,12 @@ export default function FoodDetail() {
       />
       <section className={`card safe-card ${safe ? 'safe-yes' : 'safe-no'}`}>
         <div className="muted small">{food.category}</div>
-        {safe ? (
+        {food.fodmapFree ? (
+          <>
+            <div className="safe-label">No FODMAPs</div>
+            <div className="safe-amount">No FODMAP limit</div>
+          </>
+        ) : safe ? (
           <>
             <div className="safe-label">Safe serving</div>
             <div className="safe-amount">up to {safe.label}</div>
@@ -67,28 +72,37 @@ export default function FoodDetail() {
         {verdict && <VerdictBadge verdict={verdict} />}
       </section>
 
-      <section className="card">
-        <h2>Servings</h2>
-        <ul className="tiers">
-          {food.servings.map((s, i) => (
-            <li key={i} className={`tier tier-${s.level}`}>
-              <div className="tier-head">
-                <span className="grow">{s.label}</span>
-                <LevelBadge level={s.level} />
-              </div>
-              {Object.keys(s.groups).length > 0 && (
-                <div className="tier-groups">
-                  {(Object.entries(s.groups) as [Group, string][]).map(([g, lvl]) => (
-                    <span key={g} className={`pill pill-${lvl}`}>
-                      {GROUP_LABEL[g]}
-                    </span>
-                  ))}
+      {food.fodmapFree ? (
+        <section className="card">
+          <h2>Servings</h2>
+          <p className="muted small">
+            Contains no FODMAPs, so portion size doesn't matter for FODMAPs. Watch sauces, marinades and seasonings added to it.
+          </p>
+        </section>
+      ) : (
+        <section className="card">
+          <h2>Servings</h2>
+          <ul className="tiers">
+            {food.servings.map((s, i) => (
+              <li key={i} className={`tier tier-${s.level}`}>
+                <div className="tier-head">
+                  <span className="grow">{s.label}</span>
+                  <LevelBadge level={s.level} />
                 </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+                {Object.keys(s.groups).length > 0 && (
+                  <div className="tier-groups">
+                    {(Object.entries(s.groups) as [Group, string][]).map(([g, lvl]) => (
+                      <span key={g} className={`pill pill-${lvl}`}>
+                        {GROUP_LABEL[g]}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {groups.length > 0 && (
         <section className="card">
@@ -110,7 +124,7 @@ export default function FoodDetail() {
           <div className="gl-detail">
             <span className={`gl-tag gl-${glLevel(food.gl)} gl-big`}>GL {food.gl}</span>
             <span>
-              <b>{GL_LEVEL_LABEL[glLevel(food.gl)]}</b> per {food.glServing}
+              <b>{GL_LEVEL_LABEL[glLevel(food.gl)]}</b> {glBasisText(food.glServing)}
             </span>
           </div>
           <p className="muted small">

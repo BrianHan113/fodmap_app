@@ -8,7 +8,7 @@ import { evaluateChallenge, reactionThreshold } from './challengeOutcome';
 import { foodSymptomStats } from './correlations';
 import { addDays, daysBetween } from './dates';
 import { computeLoad, stackingWarnings } from './fodmapLoad';
-import { bigSafePortion, combinedRank, lowAtAnyAmount, mergeFoods, safeServing, servingAmount, sortFoods } from './foods';
+import { bigSafePortion, combinedRank, lowInLargePortions, mergeFoods, safeServing, servingAmount, sortFoods } from './foods';
 import { glLevel } from './glycemic';
 import { eliminationDay, reintroReadiness, reintroState } from './phase';
 import { personalVerdict, toleranceMap } from './tolerance';
@@ -70,8 +70,14 @@ describe('food database', () => {
   });
 
   it('finds foods low at any amount and foods with a big safe portion', () => {
-    expect(lowAtAnyAmount(byName('Carrot'))).toBe(true);
-    expect(lowAtAnyAmount(byName('Avocado'))).toBe(false);
+    expect(lowInLargePortions(byName('Carrot'))).toBe(true); // low at 75g, nothing higher listed
+    expect(lowInLargePortions(byName('Avocado'))).toBe(false); // moderate at 1/4
+    expect(lowInLargePortions(byName('Soy sauce'))).toBe(false); // only tested at 2 tbsp
+    expect(lowInLargePortions(byName('Spinach, baby'))).toBe(false); // only 45g listed
+    expect(lowInLargePortions(byName('Salt & pepper'))).toBe(true); // FODMAP-free
+    expect(lowInLargePortions(byName('Chicken (plain)'))).toBe(true);
+    expect(byName('Chicken (plain)').fodmapFree).toBe(true);
+    expect(byName('Butter').fodmapFree).toBeUndefined(); // trace lactose
     expect(servingAmount('1 cup (125g)')).toEqual({ amount: 125, unit: 'g' });
     expect(servingAmount('1 glass (250ml)')).toEqual({ amount: 250, unit: 'ml' });
     expect(servingAmount('any')).toBeUndefined();

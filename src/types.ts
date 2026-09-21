@@ -43,6 +43,8 @@ export interface Food {
   servings: Serving[];
   notes?: string;
   fructanSource?: FructanSource;
+  /** Contains no FODMAPs at all, so there is no FODMAP limit on portion size. */
+  fodmapFree?: boolean;
   /** Estimated glycaemic load per typical serving (glServing). */
   gl?: number;
   glServing?: string;

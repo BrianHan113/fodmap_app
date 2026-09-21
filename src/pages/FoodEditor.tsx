@@ -82,6 +82,10 @@ export default function FoodEditor() {
             ))}
           </select>
         </label>
+        <label className="check">
+          <input type="checkbox" checked={!!food.fodmapFree} onChange={(e) => setFood({ ...food, fodmapFree: e.target.checked || undefined })} />
+          <span>Contains no FODMAPs (no portion limit)</span>
+        </label>
         <label className="field">
           <span>Fructan source (used to apply your challenge results)</span>
           <select value={food.fructanSource ?? ''} onChange={(e) => setFood({ ...food, fructanSource: (e.target.value || undefined) as FructanSource | undefined })}>

@@ -9,6 +9,7 @@ import type { Category, Food, FructanSource, Group, Level, Serving } from '../ty
  * Codes: fr fructose, la lactose, ma mannitol, so sorbitol, gos GOS, fn fructans,
  *        fw fructans (wheat), fo fructans (onion), fg fructans (garlic).
  * A code takes the tier's level; suffix "~" forces moderate, "!" forces high.
+ * Mixed dishes list every FODMAP they typically contain; recipes vary, so treat them as rough guides.
  */
 
 const CAT: Record<string, Category> = {
@@ -392,29 +393,161 @@ const ROWS: Row[] = [
   ['Onion powder', 'herb', '1 tsp (2g):H fo'],
   ['Garlic powder', 'herb', '1 tsp (2g):H fg'],
   ['Nutritional yeast', 'herb', '2 tbsp (10g):L'],
+
+  // ── More moderate / high foods (useful during reintroduction) ──
+  // Fructose
+  ['Apple sauce', 'fruit', '1 tbsp (20g):M fr so|1/2 cup (125g):H fr so'],
+  ['Canned fruit in pear/apple juice', 'fruit', '1/2 cup (120g):H fr so'],
+  ['Mango, dried', 'fruit', '2 pieces (20g):H fr'],
+  ['Fruit smoothie (mango/apple based)', 'drink', '1 cup (250ml):H fr so'],
+  ['Pear juice', 'drink', '1/2 cup (125ml):H fr so'],
+  ['Mango juice / nectar', 'drink', '1/2 cup (125ml):H fr'],
+  ['Cider, apple (alcoholic)', 'drink', '1 can (375ml):H fr so'],
+  ['Dessert wine / port / sherry', 'drink', '1 small glass (60ml):H fr'],
+  ['Fructose (fruit sugar)', 'sweet', '1 tsp (4g):M fr|1 tbsp:H fr'],
+  ['Fruit juice concentrate (as sweetener)', 'sweet', '1 tbsp (20g):H fr'],
+  ['Tomato pasta sauce, jarred (onion/garlic)', 'cond', '1/4 cup (60g):M fo fg|1/2 cup (125g):H fo fg fr~'],
+  ['Chutney / relish', 'cond', '1 tbsp (20g):M fo fr|2 tbsp:H fo fr'],
+
+  // Lactose
+  ['Milk, goat', 'dairy', '1/4 cup (60ml):M la|1 cup (250ml):H la'],
+  ['Buttermilk', 'dairy', '1/4 cup (60ml):M la|1 cup (250ml):H la'],
+  ['Latte / cappuccino (regular milk)', 'drink', 'small (180ml):M la|large (350ml):H la', 'Ask for lactose-free milk to keep it low.'],
+  ['Hot chocolate (made with milk)', 'drink', '1 cup (250ml):H la'],
+  ['Chai latte (regular milk)', 'drink', '1 cup (250ml):H la fn'],
+  ['Milkshake', 'drink', '1 cup (250ml):H la'],
+  ['Lassi / yogurt drink', 'drink', '1 cup (250ml):H la'],
+  ['Custard', 'dairy', '1/4 cup (60g):M la|1/2 cup (125g):H la'],
+  ['Rice pudding (dairy)', 'dairy', '1/2 cup (125g):H la'],
+  ['Instant pudding (made with milk)', 'dairy', '1/2 cup (125g):H la'],
+  ['Frozen yogurt', 'dairy', '1/2 cup (75g):H la'],
+  ['Gelato (milk-based)', 'dairy', '1 scoop (60g):M la|2 scoops:H la'],
+  ['Cheese, mascarpone', 'dairy', '2 tbsp (30g):L|1/4 cup (60g):M la'],
+  ['Cheese sauce / bechamel', 'dairy', '1/4 cup (60g):H la'],
+  ['Milk powder', 'dairy', '2 tbsp (15g):H la'],
+  ['Tzatziki', 'cond', '2 tbsp (40g):H la fg'],
+
+  // Sorbitol
+  ['Peach, canned', 'fruit', '1/2 cup (120g):H so'],
+  ['Prune juice', 'drink', '1/2 cup (125ml):H so fn'],
+  ['Sugar-free gum / mints', 'sweet', '2 pieces:H so ma', 'Check for sorbitol, mannitol, xylitol, maltitol, isomalt.'],
+  ['Sugar-free chocolate / lollies', 'sweet', '1 serve (25g):H so ma'],
+  ['Protein bar (with polyols)', 'snack', '1 bar (60g):H so ma fn', 'Many contain maltitol, sorbitol or chicory root. Check labels.'],
+
+  // Mannitol
+  ['Mushrooms, portobello', 'veg', '1/2 mushroom (40g):M ma|1 mushroom (80g):H ma'],
+  ['Mushroom soup (cream of)', 'cond', '1 cup (250ml):H ma fo la'],
+  ['Cauliflower rice', 'veg', '1/2 cup (75g):H ma'],
+  ['Celery juice', 'drink', '1 cup (250ml):H ma'],
+  ['Sweet potato fries', 'snack', '1 cup (75g):L|1 large serve (150g):M ma'],
+
+  // GOS
+  ['Cannellini beans, canned', 'legume', '1/4 cup (40g):M gos|1/2 cup (85g):H gos'],
+  ['Borlotti beans, canned', 'legume', '1/4 cup (40g):H gos'],
+  ['Navy / haricot beans', 'legume', '1/4 cup (40g):H gos'],
+  ['Pinto beans', 'legume', '1/4 cup (40g):H gos'],
+  ['Black-eyed peas', 'legume', '1/4 cup (40g):H gos'],
+  ['Broad / fava beans', 'legume', '1/4 cup (40g):H gos fn'],
+  ['Adzuki beans', 'legume', '1/4 cup (40g):H gos'],
+  ['Mung beans, whole (boiled)', 'legume', '1/4 cup (40g):M gos|1/2 cup:H gos'],
+  ['Refried beans', 'legume', '1/4 cup (60g):H gos fo'],
+  ['Falafel', 'legume', '2 falafel (60g):H gos fo fg'],
+  ['Dahl / lentil curry', 'legume', '1/2 cup (125g):H gos fo fg'],
+  ['Bean chili (with onion)', 'legume', '1 cup (250g):H gos fo fg'],
+  ['Soy flour', 'grain', '2 tbsp (15g):H gos fn'],
+  ['Cashew butter', 'nut', '1 tbsp (16g):H gos fn'],
+  ['Mixed nuts', 'nut', '1 small handful (20g):M gos fn|1/2 cup:H gos fn'],
+  ['Cashew / pistachio dip or pesto', 'cond', '2 tbsp (30g):H gos fn fg'],
+
+  // Fructans: wheat and other grains
+  ['Pita bread, wheat', 'grain', '1/2 pita (30g):M fw|1 pita (60g):H fw'],
+  ['Naan, wheat', 'grain', '1/4 naan (30g):M fw|1 naan:H fw'],
+  ['Bread roll / burger bun, white wheat', 'grain', '1 roll (60g):M fw'],
+  ['English muffin, wheat', 'grain', '1 muffin (60g):M fw'],
+  ['Crumpet', 'grain', '1 crumpet (50g):M fw'],
+  ['Muffin, wheat (bakery)', 'grain', '1/2 muffin (60g):M fw|1 muffin:H fw fr~'],
+  ['Cake, wheat flour (plain sponge)', 'sweet', '1 small slice (40g):M fw|1 large slice:H fw'],
+  ['Doughnut', 'sweet', '1 doughnut (60g):H fw'],
+  ['Biscuits / cookies, wheat', 'sweet', '2 biscuits (25g):M fw|4 biscuits:H fw'],
+  ['Pastry / pie crust, wheat', 'grain', '1/4 cup pastry (40g):M fw|1 pie:H fw'],
+  ['Breadcrumbs / panko, wheat', 'grain', '1/4 cup (25g):M fw|1/2 cup:H fw'],
+  ['Crackers, wholemeal wheat', 'grain', '4 crackers (20g):M fw|8 crackers:H fw'],
+  ['Wheat biscuit cereal (Weet-Bix / shredded wheat)', 'grain', '1 biscuit (15g):M fw|2 biscuits (30g):H fw'],
+  ['Bran flakes / All-Bran', 'grain', '1/2 cup (30g):H fw fr~'],
+  ['Wheat bran', 'grain', '2 tbsp (10g):H fw'],
+  ['Wheat germ', 'grain', '1 tbsp (8g):M fw|2 tbsp:H fw gos~'],
+  ['Semolina', 'grain', '1/2 cup cooked (120g):H fw'],
+  ['Freekeh', 'grain', '1/4 cup cooked (40g):M fw|1/2 cup:H fw'],
+  ['Spelt pasta (cooked)', 'grain', '1 cup (145g):L|1.5 cups:M fw', 'Spelt is lower in fructans than wheat.'],
+  ['Rye crispbread', 'grain', '2 crispbreads (20g):M fn|4 crispbreads:H fn'],
+  ['Pumpernickel', 'grain', '1 slice (30g):H fn'],
+  ['Dumplings / gyoza (wheat wrapper)', 'grain', '4 dumplings (100g):H fw fo fg'],
+  ['Instant ramen noodles (with flavour sachet)', 'grain', '1 packet (85g):H fw fo fg'],
+  ['Chicory root / inulin fibre', 'grain', 'added fibre:H fn', 'Added to high-fibre yogurts, bars and breads. Also listed as FOS or oligofructose.'],
+
+  // Fructans: onion
+  ['Onion, spring (white bulb)', 'veg', '1 tbsp (8g):M fo|1/4 cup:H fo'],
+  ['Onion, caramelised', 'veg', '1 tbsp (15g):M fo|1/4 cup:H fo'],
+  ['Onion, pickled', 'veg', '2 small (30g):H fo'],
+  ['Onion rings (battered)', 'snack', '4 rings (60g):H fo fw'],
+  ['French onion dip', 'cond', '2 tbsp (40g):H fo la'],
+  ['Soup, packet or canned (most)', 'cond', '1 cup (250ml):H fo fg', 'Nearly all commercial soups contain onion and/or garlic.'],
+  ['Curry paste (with onion/garlic)', 'cond', '1 tbsp (15g):H fo fg'],
+  ['Taco / fajita seasoning', 'herb', '1 tsp (3g):M fo fg|1 tbsp:H fo fg'],
+  ['Chicken salt / seasoned salt', 'herb', '1/2 tsp:M fo fg'],
+
+  // Fructans: garlic
+  ['Garlic bread', 'grain', '1 slice (30g):H fg fw'],
+  ['Garlic butter', 'cond', '1 tsp (5g):M fg|1 tbsp:H fg'],
+  ['Aioli / garlic mayonnaise', 'cond', '1 tbsp (20g):H fg'],
+  ['Garlic salt', 'herb', '1/4 tsp:M fg|1 tsp:H fg'],
+  ['Chimichurri', 'cond', '1 tbsp (15g):M fg|2 tbsp:H fg'],
+  ['Black garlic', 'veg', '1 clove (3g):H fg'],
+
+  // Other fructans
+  ['Jerusalem artichoke (sunchoke)', 'veg', '1/2 cup (75g):H fn'],
+  ['Dried fruit mix / trail mix', 'snack', '1/4 cup (35g):H fn fr so gos~'],
+  ['Persimmon', 'fruit', '1/2 fruit (80g):M fn|1 fruit:H fn'],
+  ['Tamarillo', 'fruit', '1 fruit (80g):M fr'],
+  ['Tea, dandelion (strong)', 'drink', '1 cup (250ml):H fn'],
+  ['Coffee substitute (chicory-based)', 'drink', '1 cup (250ml):H fn'],
+
+  // Mixed meals (typical recipes)
+  ['Pizza, takeaway (cheese)', 'grain', '1 slice:M fw la fo~|2 slices:H fw la fo fg'],
+  ['Lasagne', 'grain', '1 serve (250g):H fw la fo fg'],
+  ['Mac and cheese', 'grain', '1 cup (200g):H fw la'],
+  ['Burrito (beans, onion, wheat tortilla)', 'grain', '1 burrito:H fw gos fo fg'],
+  ['Hamburger (bun, onion, sauce)', 'protein', '1 burger:H fw fo fr~'],
+  ['Curry, restaurant (butter chicken, korma)', 'protein', '1 cup (250g):H fo fg la'],
+  ['Fried rice, takeaway', 'grain', '1 cup (200g):H fo fg'],
+  ['Stir-fry, takeaway (with sauce)', 'protein', '1 cup (250g):H fo fg'],
+  ['Chicken nuggets / crumbed chicken', 'protein', '4 nuggets (70g):M fw fo~|8 nuggets:H fw fo'],
+  ['Meat pie', 'protein', '1 pie (175g):H fw fo'],
+  ['Spaghetti bolognese', 'grain', '1 serve (300g):H fw fo fg'],
+  ['Sandwich, wheat bread (typical deli)', 'grain', '1 sandwich:M fw|with onion/relish:H fw fo'],
 ];
 
 function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function parseTier(tier: string): { serving: Serving; src?: FructanSource } {
+function parseTier(tier: string): { serving: Serving; srcs: FructanSource[] } {
   const idx = tier.lastIndexOf(':');
   const label = tier.slice(0, idx).trim();
   const [lv, ...codes] = tier.slice(idx + 1).trim().split(/\s+/);
   const level = LEVELS[lv];
   if (!level) throw new Error(`Bad tier "${tier}"`);
   const groups: Serving['groups'] = {};
-  let src: FructanSource | undefined;
+  const srcs: FructanSource[] = [];
   for (const raw of codes) {
     const force = raw.endsWith('!') ? 'high' : raw.endsWith('~') ? 'moderate' : null;
     const code = raw.replace(/[!~]$/, '');
     const def = CODES[code];
     if (!def) throw new Error(`Bad code "${raw}" in "${tier}"`);
     groups[def.group] = force ?? level;
-    if (def.src) src = def.src;
+    if (def.src) srcs.push(def.src);
   }
-  return { serving: { label, level, groups }, src };
+  return { serving: { label, level, groups }, srcs };
 }
 
 export function buildFoods(rows: Row[] = ROWS): Food[] {
@@ -423,12 +556,15 @@ export function buildFoods(rows: Row[] = ROWS): Food[] {
     let id = slug(name);
     while (seen.has(id)) id += '-x';
     seen.add(id);
-    let fructanSource: FructanSource | undefined;
+    const sources = new Set<FructanSource>();
     const servings = tiers.split('|').map((t) => {
-      const { serving, src } = parseTier(t);
-      fructanSource ??= src;
+      const { serving, srcs } = parseTier(t);
+      srcs.forEach((x) => sources.add(x));
       return serving;
     });
+    // One known source links the food to that fructan challenge; mixed sources (e.g. garlic
+    // bread) stay undefined so the strictest tested fructan result applies.
+    const fructanSource = sources.size === 1 ? [...sources][0] : undefined;
     const category = CAT[cat];
     if (!category) throw new Error(`Bad category "${cat}" for ${name}`);
     return { id, name, category, servings, notes, fructanSource };

@@ -33,6 +33,17 @@ describe('food database', () => {
     expect(() => buildFoods([['Bad', 'veg', '1 cup:Q']])).toThrow();
   });
 
+  it('links single-source fructan foods to their challenge; mixed sources use the strictest result', () => {
+    expect(byName('Pita bread, wheat').fructanSource).toBe('wheat');
+    expect(byName('Garlic bread').fructanSource).toBeUndefined();
+    const tol = toleranceMap([
+      { group: 'fructan-wheat', food: 'x', startDate: '2026-03-01', doses: [], status: 'done', outcome: 'tolerated' },
+      { group: 'fructan-garlic', food: 'x', startDate: '2026-03-01', doses: [], status: 'done', outcome: 'not-tolerated' },
+    ]);
+    expect(personalVerdict(byName('Pita bread, wheat'), tol)).toBe('ok');
+    expect(personalVerdict(byName('Garlic bread'), tol)).toBe('avoid');
+  });
+
   it('finds the largest safe serving', () => {
     expect(safeServing(byName('Avocado'))?.label).toBe('1/8 avocado (30g)');
     expect(safeServing(byName('Apple'))).toBeUndefined();

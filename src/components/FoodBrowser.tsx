@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
-import { matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
+import { bigSafePortion, lowAtAnyAmount, matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
 import { glLevel } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { CATEGORIES, type Food } from '../types';
@@ -12,6 +12,10 @@ export interface FoodFilters {
   q: string;
   cat: string;
   lowOnly: boolean;
+  /** Only foods that are low at every listed serving. */
+  lowAll: boolean;
+  /** Only foods whose low-FODMAP serving is at least 75g / 125ml. */
+  bigSafe: boolean;
   /** Only starred foods. */
   favOnly: boolean;
   sort: FoodSort;
@@ -19,7 +23,7 @@ export interface FoodFilters {
   recent: boolean;
 }
 
-export const DEFAULT_FILTERS: FoodFilters = { q: '', cat: '', lowOnly: false, favOnly: false, sort: 'name', recent: false };
+export const DEFAULT_FILTERS: FoodFilters = { q: '', cat: '', lowOnly: false, lowAll: false, bigSafe: false, favOnly: false, sort: 'name', recent: false };
 
 /**
  * The food list with search, category chips, low-serving filter, FODMAP sort and personal
@@ -43,7 +47,7 @@ export function FoodBrowser({
   const challenges = useChallenges();
   const favourites = useFavourites();
   const [open, setOpen] = useState<string | null>(null);
-  const { q, cat, lowOnly, favOnly, sort } = filters;
+  const { q, cat, lowOnly, lowAll, bigSafe, favOnly, sort } = filters;
   const hasRecent = !!recentIds?.length;
   const recent = filters.recent && hasRecent;
 
@@ -58,13 +62,15 @@ export function FoodBrowser({
           matchesQuery(f, q) &&
           (!cat || f.category === cat) &&
           (!lowOnly || f.servings.some((s) => s.level === 'low')) &&
+          (!lowAll || lowAtAnyAmount(f)) &&
+          (!bigSafe || bigSafePortion(f)) &&
           (!favOnly || favourites.has(f.id)) &&
           (!recent || recentSet.has(f.id)),
       ),
       sort,
       favourites,
     );
-  }, [list, q, cat, lowOnly, favOnly, sort, recent, recentIds, favourites]);
+  }, [list, q, cat, lowOnly, lowAll, bigSafe, favOnly, sort, recent, recentIds, favourites]);
 
   return (
     <>
@@ -95,6 +101,20 @@ export function FoodBrowser({
         </button>
         <button className={`chip ${lowOnly ? 'on' : ''}`} onClick={() => onChange({ lowOnly: !lowOnly })}>
           Has a low serving
+        </button>
+        <button
+          className={`chip ${lowAll ? 'on' : ''}`}
+          onClick={() => onChange({ lowAll: !lowAll })}
+          title="Low FODMAP at every listed serving size"
+        >
+          Low at any amount
+        </button>
+        <button
+          className={`chip ${bigSafe ? 'on' : ''}`}
+          onClick={() => onChange({ bigSafe: !bigSafe })}
+          title="Low-FODMAP serving of at least 75g (125ml for drinks)"
+        >
+          Big safe portion
         </button>
         {CATEGORIES.map((c) => (
           <button key={c} className={`chip ${cat === c ? 'on' : ''}`} onClick={() => onChange({ cat: cat === c ? '' : c })}>

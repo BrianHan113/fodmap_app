@@ -8,7 +8,7 @@ import { evaluateChallenge, reactionThreshold } from './challengeOutcome';
 import { foodSymptomStats } from './correlations';
 import { addDays, daysBetween } from './dates';
 import { computeLoad, stackingWarnings } from './fodmapLoad';
-import { combinedRank, mergeFoods, safeServing, sortFoods } from './foods';
+import { bigSafePortion, combinedRank, lowAtAnyAmount, mergeFoods, safeServing, servingAmount, sortFoods } from './foods';
 import { glLevel } from './glycemic';
 import { eliminationDay, reintroReadiness, reintroState } from './phase';
 import { personalVerdict, toleranceMap } from './tolerance';
@@ -67,6 +67,21 @@ describe('food database', () => {
     const picks = ['Garlic', 'Carrot', 'Avocado', 'Apple', 'Honey'].map(byName);
     const favs = new Set([byName('Honey').id, byName('Carrot').id]);
     expect(sortFoods(picks, 'fav', favs).map((f) => f.name)).toEqual(['Carrot', 'Honey', 'Apple', 'Avocado', 'Garlic']);
+  });
+
+  it('finds foods low at any amount and foods with a big safe portion', () => {
+    expect(lowAtAnyAmount(byName('Carrot'))).toBe(true);
+    expect(lowAtAnyAmount(byName('Avocado'))).toBe(false);
+    expect(servingAmount('1 cup (125g)')).toEqual({ amount: 125, unit: 'g' });
+    expect(servingAmount('1 glass (250ml)')).toEqual({ amount: 250, unit: 'ml' });
+    expect(servingAmount('any')).toBeUndefined();
+    expect(bigSafePortion(byName('Blueberries'))).toBe(true); // 1 cup (125g)
+    expect(bigSafePortion(byName('Carrot'))).toBe(true); // 75g
+    expect(bigSafePortion(byName('Avocado'))).toBe(false); // 30g
+    expect(bigSafePortion(byName('Almonds'))).toBe(false); // 12g
+    expect(bigSafePortion(byName('Milk, lactose-free'))).toBe(true); // 250ml
+    expect(bigSafePortion(byName('Coconut milk, canned'))).toBe(false); // 60ml
+    expect(bigSafePortion(byName('Apple'))).toBe(false); // no low serving
   });
 
   it('every seed food has a glycaemic load and serving', () => {

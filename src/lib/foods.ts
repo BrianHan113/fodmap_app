@@ -85,6 +85,28 @@ export function sortFoods(foods: Food[], sort: FoodSort, favourites: Set<string>
   });
 }
 
+/** Low FODMAP at every listed serving: no amount-based limit. */
+export function lowAtAnyAmount(food: Food): boolean {
+  return food.servings.every((s) => s.level === 'low');
+}
+
+export const BIG_PORTION_G = 75;
+export const BIG_PORTION_ML = 125;
+
+/** Grams or millilitres stated in a serving label, e.g. "1 cup (125g)" -> {amount: 125, unit: 'g'}. */
+export function servingAmount(label: string): { amount: number; unit: 'g' | 'ml' } | undefined {
+  const m = label.match(/(\d+(?:\.\d+)?)\s*(g|ml)\b/i);
+  return m ? { amount: Number(m[1]), unit: m[2].toLowerCase() as 'g' | 'ml' } : undefined;
+}
+
+/** The largest low-FODMAP serving is at least 75g (or 125ml for drinks). */
+export function bigSafePortion(food: Food): boolean {
+  const safe = safeServing(food);
+  const amt = safe && servingAmount(safe.label);
+  if (!amt) return false;
+  return amt.amount >= (amt.unit === 'g' ? BIG_PORTION_G : BIG_PORTION_ML);
+}
+
 export function matchesQuery(food: Food, q: string): boolean {
   if (!q) return true;
   const hay = food.name.toLowerCase();

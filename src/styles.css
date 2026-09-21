@@ -554,6 +554,25 @@ button:disabled {
     overflow-x: visible;
   }
 }
+.food-row {
+  display: flex;
+  align-items: center;
+}
+.food-row > .row {
+  flex: 1;
+  min-width: 0;
+  padding-right: 4px;
+}
+.food-row > .star {
+  flex: none;
+  margin-right: 6px;
+}
+.star {
+  color: var(--muted);
+}
+.star.on {
+  color: var(--mod);
+}
 .guide-tools {
   display: flex;
   align-items: center;

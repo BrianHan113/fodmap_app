@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useChallenges, useFoods } from '../db/hooks';
+import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { CATEGORIES, type Food } from '../types';
@@ -11,12 +11,14 @@ export interface FoodFilters {
   q: string;
   cat: string;
   lowOnly: boolean;
+  /** Only starred foods. */
+  favOnly: boolean;
   sort: FoodSort;
   /** Only foods from recent meals (picker only). */
   recent: boolean;
 }
 
-export const DEFAULT_FILTERS: FoodFilters = { q: '', cat: '', lowOnly: false, sort: 'name', recent: false };
+export const DEFAULT_FILTERS: FoodFilters = { q: '', cat: '', lowOnly: false, favOnly: false, sort: 'name', recent: false };
 
 /**
  * The food list with search, category chips, low-serving filter, FODMAP sort and personal
@@ -38,8 +40,9 @@ export function FoodBrowser({
 }) {
   const { list } = useFoods();
   const challenges = useChallenges();
+  const favourites = useFavourites();
   const [open, setOpen] = useState<string | null>(null);
-  const { q, cat, lowOnly, sort } = filters;
+  const { q, cat, lowOnly, favOnly, sort } = filters;
   const hasRecent = !!recentIds?.length;
   const recent = filters.recent && hasRecent;
 
@@ -54,11 +57,13 @@ export function FoodBrowser({
           matchesQuery(f, q) &&
           (!cat || f.category === cat) &&
           (!lowOnly || f.servings.some((s) => s.level === 'low')) &&
+          (!favOnly || favourites.has(f.id)) &&
           (!recent || recentSet.has(f.id)),
       ),
       sort,
+      favourites,
     );
-  }, [list, q, cat, lowOnly, sort, recent, recentIds]);
+  }, [list, q, cat, lowOnly, favOnly, sort, recent, recentIds, favourites]);
 
   return (
     <>
@@ -78,11 +83,15 @@ export function FoodBrowser({
         )}
       </div>
       <div className="chips">
+        {/* Recent and Favourites are alternative shortlists, so each switches the other off. */}
         {hasRecent && (
-          <button className={`chip ${recent ? 'on' : ''}`} onClick={() => onChange({ recent: !recent })}>
+          <button className={`chip ${recent ? 'on' : ''}`} onClick={() => onChange({ recent: !recent, favOnly: false })}>
             Recent
           </button>
         )}
+        <button className={`chip ${favOnly ? 'on' : ''}`} onClick={() => onChange({ favOnly: !favOnly, recent: false })}>
+          ★ Favourites
+        </button>
         <button className={`chip ${lowOnly ? 'on' : ''}`} onClick={() => onChange({ lowOnly: !lowOnly })}>
           Has a low serving
         </button>
@@ -102,6 +111,7 @@ export function FoodBrowser({
             <option value="name">A–Z</option>
             <option value="low">Lowest FODMAP first</option>
             <option value="high">Highest FODMAP first</option>
+            <option value="fav">Favourites first</option>
           </select>
         </label>
       </div>
@@ -119,14 +129,28 @@ export function FoodBrowser({
               {verdict && verdict !== 'untested' && <VerdictBadge verdict={verdict} />}
             </>
           );
+          const fav = favourites.has(f.id);
+          const star = (
+            <button
+              className={`icon-btn star ${fav ? 'on' : ''}`}
+              onClick={() => toggleFavourite(f.id, !fav)}
+              aria-label={fav ? `Remove ${f.name} from favourites` : `Add ${f.name} to favourites`}
+              aria-pressed={fav}
+            >
+              <Icon name="star" size={20} filled={fav} />
+            </button>
+          );
           return (
             <li key={f.id}>
               {onPick ? (
                 <>
-                  <button className="row" onClick={() => setOpen(open === f.id ? null : f.id)} aria-expanded={open === f.id}>
-                    {body}
-                    <Icon name={open === f.id ? 'close' : 'plus'} size={18} />
-                  </button>
+                  <div className="food-row">
+                    <button className="row" onClick={() => setOpen(open === f.id ? null : f.id)} aria-expanded={open === f.id}>
+                      {body}
+                      <Icon name={open === f.id ? 'close' : 'plus'} size={18} />
+                    </button>
+                    {star}
+                  </div>
                   {open === f.id && (
                     <div className="serving-choices">
                       {f.servings.map((s, i) => (
@@ -140,15 +164,18 @@ export function FoodBrowser({
                   )}
                 </>
               ) : (
-                <Link to={`/foods/${f.id}`} className="row">
-                  {body}
-                  <Icon name="chevron" size={18} />
-                </Link>
+                <div className="food-row">
+                  <Link to={`/foods/${f.id}`} className="row">
+                    {body}
+                    <Icon name="chevron" size={18} />
+                  </Link>
+                  {star}
+                </div>
               )}
             </li>
           );
         })}
-        {!foods.length && <li className="empty">No foods match.</li>}
+        {!foods.length && <li className="empty">{favOnly && !favourites.size ? 'No favourites yet. Tap ☆ on a food to add it.' : 'No foods match.'}</li>}
       </ul>
     </>
   );

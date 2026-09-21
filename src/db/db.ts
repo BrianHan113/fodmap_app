@@ -10,6 +10,8 @@ export class FodmapDB extends Dexie {
   /** Custom foods and user edits to seed foods (same id overrides the seed). */
   foods!: EntityTable<Food, 'id'>;
   settings!: EntityTable<Settings, 'key'>;
+  /** Starred food ids. */
+  favourites!: EntityTable<{ id: string }, 'id'>;
 
   constructor(name = 'fodmap-helper') {
     super(name);
@@ -22,9 +24,10 @@ export class FodmapDB extends Dexie {
       foods: 'id',
       settings: 'key',
     });
+    this.version(2).stores({ favourites: 'id' });
   }
 }
 
 export const db = new FodmapDB();
 
-export const TABLES = ['meals', 'symptoms', 'bowel', 'days', 'challenges', 'foods', 'settings'] as const;
+export const TABLES = ['meals', 'symptoms', 'bowel', 'days', 'challenges', 'foods', 'settings', 'favourites'] as const;

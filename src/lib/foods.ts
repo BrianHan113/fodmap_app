@@ -36,10 +36,14 @@ export function fodmapRank(food: Food): [number, number, number] {
   return [base, worst, groups];
 }
 
-export type FoodSort = 'name' | 'low' | 'high';
+export type FoodSort = 'name' | 'low' | 'high' | 'fav';
 
-export function sortFoods(foods: Food[], sort: FoodSort): Food[] {
+export function sortFoods(foods: Food[], sort: FoodSort, favourites: Set<string> = new Set()): Food[] {
   if (sort === 'name') return [...foods].sort((a, b) => a.name.localeCompare(b.name));
+  if (sort === 'fav') {
+    // Favourites first, then everything else; A-Z within each.
+    return [...foods].sort((a, b) => Number(favourites.has(b.id)) - Number(favourites.has(a.id)) || a.name.localeCompare(b.name));
+  }
   const dir = sort === 'low' ? 1 : -1;
   const ranks = new Map(foods.map((f) => [f.id, fodmapRank(f)]));
   return [...foods].sort((a, b) => {

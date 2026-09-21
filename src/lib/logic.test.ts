@@ -62,6 +62,12 @@ describe('food database', () => {
     expect(sortFoods(picks, 'name').map((f) => f.name)).toEqual(['Apple', 'Avocado', 'Carrot', 'Garlic', 'Honey']);
   });
 
+  it('sorts favourites first, A-Z within each group', () => {
+    const picks = ['Garlic', 'Carrot', 'Avocado', 'Apple', 'Honey'].map(byName);
+    const favs = new Set([byName('Honey').id, byName('Carrot').id]);
+    expect(sortFoods(picks, 'fav', favs).map((f) => f.name)).toEqual(['Carrot', 'Honey', 'Apple', 'Avocado', 'Garlic']);
+  });
+
   it('applies user overrides and hides foods', () => {
     const avo = byName('Avocado');
     const merged = mergeFoods([
@@ -185,6 +191,7 @@ describe('backup', () => {
     await db.settings.put({ key: 'app', onboarded: true, phase: 'elimination', elimStart: '2026-01-01', theme: 'system' });
     const custom: Food = { id: 'c1', name: 'Custom', category: 'Snacks', servings: [{ label: '1', level: 'low', groups: {} }], custom: true };
     await db.foods.put(custom);
+    await db.favourites.put({ id: 'carrot' });
     const dump = JSON.parse(JSON.stringify(await exportData(db)));
     await db.meals.clear();
     await db.meals.add({ date: '2099-01-01', time: '08:00', type: 'snack', items: [] });
@@ -192,6 +199,7 @@ describe('backup', () => {
     expect(await db.meals.toArray()).toHaveLength(1);
     expect((await db.meals.toArray())[0].date).toBe('2026-01-01');
     expect(await db.foods.get('c1')).toEqual(custom);
+    expect(await db.favourites.toArray()).toEqual([{ id: 'carrot' }]);
     await expect(importData(db, { nope: true })).rejects.toThrow();
     db.close();
   });

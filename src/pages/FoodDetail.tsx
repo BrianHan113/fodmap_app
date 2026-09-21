@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { Header, LevelBadge, VerdictBadge } from '../components/ui';
-import { useChallenges, useFoods } from '../db/hooks';
+import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { safeServing } from '../lib/foods';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { GROUP_LABEL, type Group } from '../types';
@@ -20,6 +20,7 @@ export default function FoodDetail() {
   const { id } = useParams();
   const { map } = useFoods();
   const challenges = useChallenges();
+  const favourites = useFavourites();
   const food = id ? map.get(id) : undefined;
   const tol = useMemo(() => toleranceMap(challenges), [challenges]);
 
@@ -34,9 +35,19 @@ export default function FoodDetail() {
         title={food.name}
         back
         right={
-          <Link to={`/settings/foods/${food.id}`} className="icon-btn" aria-label="Edit food">
-            <Icon name="edit" />
-          </Link>
+          <>
+            <button
+              className={`icon-btn star ${favourites.has(food.id) ? 'on' : ''}`}
+              onClick={() => toggleFavourite(food.id, !favourites.has(food.id))}
+              aria-label={favourites.has(food.id) ? 'Remove from favourites' : 'Add to favourites'}
+              aria-pressed={favourites.has(food.id)}
+            >
+              <Icon name="star" filled={favourites.has(food.id)} />
+            </button>
+            <Link to={`/settings/foods/${food.id}`} className="icon-btn" aria-label="Edit food">
+              <Icon name="edit" />
+            </Link>
+          </>
         }
       />
       <section className={`card safe-card ${safe ? 'safe-yes' : 'safe-no'}`}>

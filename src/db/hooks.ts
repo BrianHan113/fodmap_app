@@ -44,3 +44,13 @@ export function useFoods(): { list: Food[]; map: Map<string, Food>; overrides: F
 export function useChallenges() {
   return useLiveQuery(() => db.challenges.toArray(), []) ?? [];
 }
+
+export function useFavourites(): Set<string> {
+  const rows = useLiveQuery(() => db.favourites.toArray(), []);
+  return useMemo(() => new Set((rows ?? []).map((r) => r.id)), [rows]);
+}
+
+export async function toggleFavourite(id: string, on: boolean) {
+  if (on) await db.favourites.put({ id });
+  else await db.favourites.delete(id);
+}

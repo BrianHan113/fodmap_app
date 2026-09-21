@@ -685,8 +685,12 @@ button:disabled {
   align-items: center;
   padding: 12px;
 }
-.sheet-head .search {
-  flex: 1;
+.sheet-head h2 {
+  margin: 0 0 0 4px;
+  font-size: 18px;
+}
+.sheet-body .search.sticky {
+  top: 0;
 }
 .sheet-body {
   flex: 1;

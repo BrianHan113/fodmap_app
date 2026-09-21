@@ -1,95 +1,34 @@
-import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { FoodBrowser, type FoodFilters } from '../components/FoodBrowser';
 import { Icon } from '../components/Icon';
-import { Header, LevelDot, VerdictBadge } from '../components/ui';
-import { useChallenges, useFoods } from '../db/hooks';
-import { matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
-import { personalVerdict, toleranceMap } from '../lib/tolerance';
-import { CATEGORIES } from '../types';
+import { Header } from '../components/ui';
+import type { FoodSort } from '../lib/foods';
 
 export default function FoodGuide() {
-  const { list } = useFoods();
-  const challenges = useChallenges();
   const [params, setParams] = useSearchParams();
-  const q = params.get('q') ?? '';
-  const cat = params.get('cat') ?? '';
-  const lowOnly = params.get('low') === '1';
-  const sort = (params.get('sort') as FoodSort | null) ?? 'name';
-
-  const set = (k: string, v: string) => {
-    const p = new URLSearchParams(params);
-    if (v) p.set(k, v);
-    else p.delete(k);
-    setParams(p, { replace: true });
+  // Filters live in the URL so they survive opening a food and coming back.
+  const filters: FoodFilters = {
+    q: params.get('q') ?? '',
+    cat: params.get('cat') ?? '',
+    lowOnly: params.get('low') === '1',
+    sort: (params.get('sort') as FoodSort | null) ?? 'name',
+    recent: false,
   };
 
-  const tol = useMemo(() => toleranceMap(challenges), [challenges]);
-  const hasResults = Object.keys(tol).length > 0;
-
-  const foods = useMemo(
-    () =>
-      sortFoods(
-        list.filter((f) => matchesQuery(f, q) && (!cat || f.category === cat) && (!lowOnly || f.servings.some((s) => s.level === 'low'))),
-        sort,
-      ),
-    [list, q, cat, lowOnly, sort],
-  );
+  const onChange = (patch: Partial<FoodFilters>) => {
+    const next = { ...filters, ...patch };
+    const p = new URLSearchParams();
+    if (next.q) p.set('q', next.q);
+    if (next.cat) p.set('cat', next.cat);
+    if (next.lowOnly) p.set('low', '1');
+    if (next.sort !== 'name') p.set('sort', next.sort);
+    setParams(p, { replace: true });
+  };
 
   return (
     <>
       <Header title="Food guide" />
-      <div className="search sticky">
-        <Icon name="search" size={18} />
-        <input placeholder={`Search ${list.length} foods…`} value={q} onChange={(e) => set('q', e.target.value)} />
-        {q && (
-          <button className="icon-btn" onClick={() => set('q', '')} aria-label="Clear">
-            <Icon name="close" size={18} />
-          </button>
-        )}
-      </div>
-      <div className="chips">
-        <button className={`chip ${lowOnly ? 'on' : ''}`} onClick={() => set('low', lowOnly ? '' : '1')}>
-          Has a low serving
-        </button>
-        {CATEGORIES.map((c) => (
-          <button key={c} className={`chip ${cat === c ? 'on' : ''}`} onClick={() => set('cat', cat === c ? '' : c)}>
-            {c}
-          </button>
-        ))}
-      </div>
-      <div className="guide-tools">
-        <div className="legend small muted">
-          <LevelDot level="low" /> low <LevelDot level="moderate" /> moderate <LevelDot level="high" /> high at smallest serving
-        </div>
-        <label className="sort small muted">
-          Sort
-          <select value={sort} onChange={(e) => set('sort', e.target.value === 'name' ? '' : e.target.value)}>
-            <option value="name">A–Z</option>
-            <option value="low">Lowest FODMAP first</option>
-            <option value="high">Highest FODMAP first</option>
-          </select>
-        </label>
-      </div>
-      <ul className="list card flush">
-        {foods.map((f) => {
-          const safe = safeServing(f);
-          const verdict = hasResults ? personalVerdict(f, tol) : undefined;
-          return (
-            <li key={f.id}>
-              <Link to={`/foods/${f.id}`} className="row">
-                <LevelDot level={f.servings[0].level} />
-                <span className="grow">
-                  <span className="row-title">{f.name}</span>
-                  <span className="row-sub">{safe ? `Low: up to ${safe.label}` : 'No low-FODMAP serving'}</span>
-                </span>
-                {verdict && verdict !== 'untested' && <VerdictBadge verdict={verdict} />}
-                <Icon name="chevron" size={18} />
-              </Link>
-            </li>
-          );
-        })}
-        {!foods.length && <li className="empty">No foods match.</li>}
-      </ul>
+      <FoodBrowser filters={filters} onChange={onChange} />
       <Link to="/settings/foods/new" className="btn block">
         <Icon name="plus" size={18} /> Add a custom food
       </Link>

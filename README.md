@@ -2,7 +2,7 @@
 
 A personal low-FODMAP diet companion that runs in the browser and installs to your phone's home screen as an app (PWA). It works offline, and all data stays on your device.
 
-- **Food guide.** About 280 foods with low / moderate / high serving sizes and the FODMAP groups behind each rating. You can edit foods or add your own.
+- **Food guide.** About 325 foods with low / moderate / high serving sizes and the FODMAP groups behind each rating. You can edit foods or add your own.
 - **Diary.** Log meals by picking foods and portions. It shows a live per-FODMAP load and warns when moderate servings stack up. You can also log symptoms (0–10), Bristol stool type, and a daily check-in (mood, stress, sleep, exercise, water, notes).
 - **Three phases.** Elimination with a day counter and readiness check. Reintroduction with guided 3-day challenges per FODMAP group, automatic scoring against your baseline, and washout timers. Personalization, where the food guide is marked by your own results.
 - **Insights.** Symptom and stress trends, lifestyle factors, how symptoms follow each food, stool types, and your tolerance map.

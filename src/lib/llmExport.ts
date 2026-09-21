@@ -41,7 +41,8 @@ Food ratings in the data (low / moderate / high, and which FODMAP groups) come f
 const SCALES = `- Symptoms: bloating, abdominal pain, gas, nausea, each 0–10 (0 = none, 10 = worst). "Worst" = the highest of the four.
 - Bowel movements: Bristol stool type 1–7 (3–4 ideal, 1–2 constipated, 6–7 diarrhoea); urgency 0–3.
 - Daily check-in: overall gut day 0–10 (10 = great), mood 1–5, stress 0–10, sleep hours and quality 1–5, exercise minutes, water glasses.
-- Meal FODMAP load per group: each moderate serving adds 1, each high serving adds 2 (≥2 in one meal = high load).`;
+- Meal FODMAP load per group: each moderate serving adds 1, each high serving adds 2 (≥2 in one meal = high load).
+- GL = estimated glycaemic load per the typical serving stated (low ≤10, medium 11–19, high ≥20). It is separate from the FODMAP rating.`;
 
 function fmtNum(n: number | undefined, digits = 1): string {
   return n === undefined ? 'n/a' : n.toFixed(digits);
@@ -61,7 +62,8 @@ function mealLine(meal: Meal, foods: Map<string, Food>): string {
     const s = f?.servings[i.servingIndex];
     const qty = i.qty !== 1 ? `${i.qty}× ` : '';
     const groups = s ? (Object.keys(s.groups) as Group[]).map((g) => GROUP_LABEL[g].toLowerCase()).join(', ') : '';
-    const rating = s ? ` [${s.level}${groups ? `: ${groups}` : ''}]` : '';
+    const gl = f?.gl === undefined ? '' : f.gl === 0 ? '; GL 0' : `; GL ${f.gl} per ${f.glServing}`;
+    const rating = s ? ` [${s.level}${groups ? `: ${groups}` : ''}${gl}]` : '';
     return `${f?.name ?? 'Unknown food'}, ${qty}${s?.label ?? '?'}${rating}`;
   });
   const load = loadText(meal, foods);

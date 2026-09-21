@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon';
 import { Header, LevelBadge, VerdictBadge } from '../components/ui';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { safeServing } from '../lib/foods';
+import { GL_LEVEL_LABEL, glLevel } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { GROUP_LABEL, type Group } from '../types';
 
@@ -100,6 +101,22 @@ export default function FoodDetail() {
               </div>
             ))}
           </dl>
+        </section>
+      )}
+
+      {food.gl !== undefined && (
+        <section className="card">
+          <h2>Glycaemic load</h2>
+          <div className="gl-detail">
+            <span className={`gl-tag gl-${glLevel(food.gl)} gl-big`}>GL {food.gl}</span>
+            <span>
+              <b>{GL_LEVEL_LABEL[glLevel(food.gl)]}</b> per {food.glServing}
+            </span>
+          </div>
+          <p className="muted small">
+            How much a serving raises blood sugar, combining its GI and carbohydrate. Low ≤10, medium 11–19, high ≥20. Estimated from published GI
+            tables; it varies with ripeness, cooking and portion size, and is separate from the FODMAP rating.
+          </p>
         </section>
       )}
 

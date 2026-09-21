@@ -573,6 +573,40 @@ button:disabled {
 .star.on {
   color: var(--mod);
 }
+.gl-tag {
+  flex: none;
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.gl-low {
+  color: var(--low);
+}
+.gl-medium {
+  color: var(--mod);
+}
+.gl-high {
+  color: var(--high);
+}
+.gl-big {
+  font-size: 18px;
+  padding: 4px 10px;
+  border-radius: 10px;
+}
+.gl-detail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.legend-gl {
+  flex-basis: 100%;
+}
 .guide-tools {
   display: flex;
   align-items: center;

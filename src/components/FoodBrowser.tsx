@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
+import { glLevel } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { CATEGORIES, type Food } from '../types';
 import { Icon } from './Icon';
@@ -103,7 +104,8 @@ export function FoodBrowser({
       </div>
       <div className="guide-tools">
         <div className="legend small muted">
-          <LevelDot level="low" /> low <LevelDot level="moderate" /> moderate <LevelDot level="high" /> high at smallest serving
+          <LevelDot level="low" /> low <LevelDot level="moderate" /> moderate <LevelDot level="high" /> high FODMAP at smallest serving
+          <span className="legend-gl">GL = glycaemic load per typical serving: low ≤10 · medium 11–19 · high ≥20</span>
         </div>
         <label className="sort small muted">
           Sort
@@ -111,6 +113,9 @@ export function FoodBrowser({
             <option value="name">A–Z</option>
             <option value="low">Lowest FODMAP first</option>
             <option value="high">Highest FODMAP first</option>
+            <option value="gl-low">Lowest GL first</option>
+            <option value="gl-high">Highest GL first</option>
+            <option value="combined">Lowest FODMAP + GL first</option>
             <option value="fav">Favourites first</option>
           </select>
         </label>
@@ -127,6 +132,11 @@ export function FoodBrowser({
                 <span className="row-sub">{safe ? `Low: up to ${safe.label}` : 'No low-FODMAP serving'}</span>
               </span>
               {verdict && verdict !== 'untested' && <VerdictBadge verdict={verdict} />}
+              {f.gl !== undefined && (
+                <span className={`gl-tag gl-${glLevel(f.gl)}`} title={`Glycaemic load ${f.gl} per ${f.glServing}`}>
+                  GL {f.gl}
+                </span>
+              )}
             </>
           );
           const fav = favourites.has(f.id);

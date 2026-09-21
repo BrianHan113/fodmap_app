@@ -56,7 +56,13 @@ export default function FoodEditor() {
       // A low serving has no driving groups; otherwise groups take the serving's level.
       groups: s.level === 'low' ? {} : Object.fromEntries(Object.keys(s.groups).map((g) => [g, s.level])),
     }));
-    await db.foods.put({ ...food, name: food.name.trim(), servings, notes: food.notes?.trim() || undefined });
+    await db.foods.put({
+      ...food,
+      name: food.name.trim(),
+      servings,
+      notes: food.notes?.trim() || undefined,
+      glServing: food.gl === undefined ? undefined : food.glServing?.trim() || 'typical serving',
+    });
     nav(-1);
   };
 
@@ -85,6 +91,23 @@ export default function FoodEditor() {
             <option value="garlic">Garlic</option>
           </select>
         </label>
+        <div className="row-fields">
+          <label className="field">
+            <span>Glycaemic load (optional)</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={food.gl ?? ''}
+              onChange={(e) => setFood({ ...food, gl: e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)) })}
+              placeholder="e.g. 12"
+            />
+          </label>
+          <label className="field">
+            <span>GL is per</span>
+            <input value={food.glServing ?? ''} onChange={(e) => setFood({ ...food, glServing: e.target.value })} placeholder="e.g. 1 cup cooked" />
+          </label>
+        </div>
       </section>
 
       <section className="card">

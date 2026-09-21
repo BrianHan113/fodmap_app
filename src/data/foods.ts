@@ -1,4 +1,5 @@
 import type { Category, Food, FructanSource, Group, Level, Serving } from '../types';
+import { GL_DATA } from './glycemic';
 
 /*
  * Compact food table. Serving thresholds are approximations compiled from publicly
@@ -571,4 +572,7 @@ export function buildFoods(rows: Row[] = ROWS): Food[] {
   });
 }
 
-export const SEED_FOODS: Food[] = buildFoods();
+export const SEED_FOODS: Food[] = buildFoods().map((f) => {
+  const gl = GL_DATA[f.id];
+  return gl ? { ...f, gl: gl[0], glServing: gl[1] } : f;
+});

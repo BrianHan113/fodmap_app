@@ -43,6 +43,9 @@ export interface Food {
   servings: Serving[];
   notes?: string;
   fructanSource?: FructanSource;
+  /** Estimated glycaemic load per typical serving (glServing). */
+  gl?: number;
+  glServing?: string;
   custom?: boolean;
   hidden?: boolean;
 }

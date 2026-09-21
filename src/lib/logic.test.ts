@@ -8,7 +8,8 @@ import { evaluateChallenge, reactionThreshold } from './challengeOutcome';
 import { foodSymptomStats } from './correlations';
 import { addDays, daysBetween } from './dates';
 import { computeLoad, stackingWarnings } from './fodmapLoad';
-import { mergeFoods, safeServing, sortFoods } from './foods';
+import { combinedRank, mergeFoods, safeServing, sortFoods } from './foods';
+import { glLevel } from './glycemic';
 import { eliminationDay, reintroReadiness, reintroState } from './phase';
 import { personalVerdict, toleranceMap } from './tolerance';
 
@@ -66,6 +67,34 @@ describe('food database', () => {
     const picks = ['Garlic', 'Carrot', 'Avocado', 'Apple', 'Honey'].map(byName);
     const favs = new Set([byName('Honey').id, byName('Carrot').id]);
     expect(sortFoods(picks, 'fav', favs).map((f) => f.name)).toEqual(['Carrot', 'Honey', 'Apple', 'Avocado', 'Garlic']);
+  });
+
+  it('every seed food has a glycaemic load and serving', () => {
+    for (const f of SEED_FOODS) {
+      expect(f.gl, f.name).toBeTypeOf('number');
+      expect(f.glServing, f.name).toBeTruthy();
+    }
+  });
+
+  it('bands glycaemic load at 10 and 20', () => {
+    expect([0, 10, 11, 19, 20, 32].map(glLevel)).toEqual(['low', 'low', 'medium', 'medium', 'high', 'high']);
+  });
+
+  it('sorts by GL and by combined FODMAP + GL', () => {
+    const picks = ['Rice, white / basmati / jasmine', 'Carrot', 'Apple', 'Bagel, wheat', 'Chicken (plain)', 'Oats, rolled'].map(byName);
+    const glLow = sortFoods(picks, 'gl-low').map((f) => f.name);
+    expect(glLow[0]).toBe('Chicken (plain)');
+    expect(glLow.at(-1)).toBe('Rice, white / basmati / jasmine');
+    expect(sortFoods(picks, 'gl-high')[0].name).toBe('Rice, white / basmati / jasmine');
+    // Chicken & carrot: low FODMAP + low GL. Bagel: high FODMAP + high GL is last.
+    const combined = sortFoods(picks, 'combined').map((f) => f.name);
+    expect(combined.slice(0, 2).sort()).toEqual(['Carrot', 'Chicken (plain)']);
+    expect(combined.at(-1)).toBe('Bagel, wheat');
+    // Unknown GL is treated as high in the combined ranking and sorts last by GL.
+    const noGl: Food = { id: 'x', name: 'Mystery', category: 'Snacks', servings: [{ label: '1', level: 'low', groups: {} }] };
+    expect(combinedRank(noGl)[0]).toBe(2);
+    expect(sortFoods([noGl, ...picks], 'gl-low').at(-1)?.name).toBe('Mystery');
+    expect(sortFoods([noGl, ...picks], 'gl-high').at(-1)?.name).toBe('Mystery');
   });
 
   it('applies user overrides and hides foods', () => {

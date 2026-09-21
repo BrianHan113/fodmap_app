@@ -62,6 +62,8 @@ export default function FoodEditor() {
       servings,
       notes: food.notes?.trim() || undefined,
       glServing: food.gl === undefined ? undefined : food.glServing?.trim() || 'typical serving',
+      glAmount: food.gl === undefined ? undefined : food.glAmount || undefined,
+      glUnit: food.gl === undefined || !food.glAmount ? undefined : food.glUnit ?? 'g',
     });
     nav(-1);
   };
@@ -112,6 +114,27 @@ export default function FoodEditor() {
             <input value={food.glServing ?? ''} onChange={(e) => setFood({ ...food, glServing: e.target.value })} placeholder="e.g. 1 cup cooked" />
           </label>
         </div>
+        <div className="row-fields">
+          <label className="field">
+            <span>That serving weighs</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              value={food.glAmount ?? ''}
+              onChange={(e) => setFood({ ...food, glAmount: e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)) })}
+              placeholder="e.g. 180"
+            />
+          </label>
+          <label className="field">
+            <span>Unit</span>
+            <select value={food.glUnit ?? 'g'} onChange={(e) => setFood({ ...food, glUnit: e.target.value as 'g' | 'ml' })}>
+              <option value="g">grams (as eaten)</option>
+              <option value="ml">ml (drinks)</option>
+            </select>
+          </label>
+        </div>
+        <p className="muted small">The weight lets the app compare GL per 100g, so small servings don't look misleadingly low.</p>
       </section>
 
       <section className="card">

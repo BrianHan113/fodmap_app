@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { bigSafePortion, lowInLargePortions, matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
-import { glBasisText, glLevel } from '../lib/glycemic';
+import { glBasisText, glDensity, glDensityUnit, glLevel } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { CATEGORIES, type Food } from '../types';
 import { Icon } from './Icon';
@@ -125,7 +125,7 @@ export function FoodBrowser({
       <div className="guide-tools">
         <div className="legend small muted">
           <LevelDot level="low" /> low <LevelDot level="moderate" /> moderate <LevelDot level="high" /> high FODMAP at smallest serving
-          <span className="legend-gl">GL = glycaemic load per typical serving: low ≤10 · medium 11–19 · high ≥20</span>
+          <span className="legend-gl">GL = glycaemic load per 100g (drinks: per 250ml glass): low ≤10 · medium 11–19 · high ≥20</span>
         </div>
         <label className="sort small muted">
           Sort
@@ -152,11 +152,7 @@ export function FoodBrowser({
                 <span className="row-sub">{f.fodmapFree ? 'No FODMAPs' : safe ? `Low: up to ${safe.label}` : 'No low-FODMAP serving'}</span>
               </span>
               {verdict && verdict !== 'untested' && <VerdictBadge verdict={verdict} />}
-              {f.gl !== undefined && (
-                <span className={`gl-tag gl-${glLevel(f.gl)}`} title={`Glycaemic load ${f.gl} ${glBasisText(f.glServing)}`}>
-                  GL {f.gl}
-                </span>
-              )}
+              <GlTag food={f} />
             </>
           );
           const fav = favourites.has(f.id);
@@ -208,5 +204,19 @@ export function FoodBrowser({
         {!foods.length && <li className="empty">{favOnly && !favourites.size ? 'No favourites yet. Tap ☆ on a food to add it.' : 'No foods match.'}</li>}
       </ul>
     </>
+  );
+}
+
+/** GL per 100g (per glass for drinks), coloured by band; falls back to per-serving GL if the serving size is unknown. */
+function GlTag({ food }: { food: Food }) {
+  if (food.gl === undefined) return null;
+  const density = glDensity(food);
+  const value = density ?? food.gl;
+  const title = `Glycaemic load ${food.gl} ${glBasisText(food)}${density !== undefined && food.gl > 0 ? `; ${density} ${glDensityUnit(food).replace('/', 'per ')}` : ''}`;
+  return (
+    <span className={`gl-tag gl-${glLevel(value)}`} title={title}>
+      GL {value}
+      {density !== undefined && density > 0 && <small>{glDensityUnit(food)}</small>}
+    </span>
   );
 }

@@ -52,7 +52,7 @@ describe('LLM export', () => {
   it('logs each day chronologically with FODMAP details', () => {
     expect(text).toMatch(/^### .*\(2026-01-10\)$/m);
     expect(text).toContain('Avocado, 1/4 avocado (60g) [moderate: sorbitol; GL 0]');
-    expect(text).toContain('Corn, sweet (cob), 1/2 cob (60g) [moderate: sorbitol; GL 10 per 1 medium cob]');
+    expect(text).toContain('Corn, sweet (cob), 1/2 cob (60g) [moderate: sorbitol; GL 10 per 1 medium cob, 10 per 100g]');
     expect(text).toContain('Meal load: sorbitol 2 (stacking: sorbitol)');
     expect(text).toContain('stress 7/10');
     expect(text).toContain('on period');

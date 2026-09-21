@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon';
 import { Header, LevelBadge, VerdictBadge } from '../components/ui';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { safeServing } from '../lib/foods';
-import { GL_LEVEL_LABEL, glBasisText, glLevel } from '../lib/glycemic';
+import { GL_LEVEL_TEXT, glBasisText, glDensity, glDensityText, glLevel } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { GROUP_LABEL, type Group } from '../types';
 
@@ -26,6 +26,9 @@ export default function FoodDetail() {
   const tol = useMemo(() => toleranceMap(challenges), [challenges]);
 
   if (!food) return <Header title="Food not found" back />;
+  const density = glDensity(food);
+  // Carb-heavy FODMAP-free foods (sugar, rice, potato) still need portion control for blood sugar.
+  const portionMatters = food.fodmapFree && density !== undefined && glLevel(density) !== 'low';
   const safe = safeServing(food);
   const verdict = Object.keys(tol).length ? personalVerdict(food, tol) : undefined;
   const groups = [...new Set(food.servings.flatMap((s) => Object.keys(s.groups) as Group[]))];
@@ -51,9 +54,17 @@ export default function FoodDetail() {
           </>
         }
       />
-      <section className={`card safe-card ${safe ? 'safe-yes' : 'safe-no'}`}>
+      <section className={`card safe-card ${portionMatters ? 'safe-caution' : safe ? 'safe-yes' : 'safe-no'}`}>
         <div className="muted small">{food.category}</div>
-        {food.fodmapFree ? (
+        {portionMatters ? (
+          <>
+            <div className="safe-label">No FODMAPs</div>
+            <div className="safe-amount">Portion still matters</div>
+            <div className="small">
+              for blood sugar: {GL_LEVEL_TEXT[glLevel(density!)]} ({density} {glDensityText(food)})
+            </div>
+          </>
+        ) : food.fodmapFree ? (
           <>
             <div className="safe-label">No FODMAPs</div>
             <div className="safe-amount">No FODMAP limit</div>
@@ -76,7 +87,10 @@ export default function FoodDetail() {
         <section className="card">
           <h2>Servings</h2>
           <p className="muted small">
-            Contains no FODMAPs, so portion size doesn't matter for FODMAPs. Watch sauces, marinades and seasonings added to it.
+            Contains no FODMAPs, so portion size doesn't matter for FODMAPs.{' '}
+            {portionMatters
+              ? 'It is carbohydrate-rich, though, so larger portions raise the glycaemic load (see below).'
+              : 'Watch sauces, marinades and seasonings added to it.'}
           </p>
         </section>
       ) : (
@@ -121,15 +135,46 @@ export default function FoodDetail() {
       {food.gl !== undefined && (
         <section className="card">
           <h2>Glycaemic load</h2>
-          <div className="gl-detail">
-            <span className={`gl-tag gl-${glLevel(food.gl)} gl-big`}>GL {food.gl}</span>
-            <span>
-              <b>{GL_LEVEL_LABEL[glLevel(food.gl)]}</b> {glBasisText(food.glServing)}
-            </span>
-          </div>
+          {food.gl === 0 ? (
+            <div className="gl-detail">
+              <span className="gl-tag gl-low gl-big">GL 0</span>
+              <span>
+                <b>Low GL at any amount</b> (negligible carbohydrate)
+              </span>
+            </div>
+          ) : (
+            <>
+              <dl className="gl-rows">
+                <div>
+                  <dt>Per serving</dt>
+                  <dd>
+                    <span className={`gl-tag gl-${glLevel(food.gl)}`}>GL {food.gl}</span> {GL_LEVEL_TEXT[glLevel(food.gl)]} {glBasisText(food)}
+                  </dd>
+                </div>
+                {density !== undefined && (
+                  <div>
+                    <dt>{glDensityText(food) === 'per 100g' ? 'Per 100g' : 'Per glass (250ml)'}</dt>
+                    <dd>
+                      <span className={`gl-tag gl-${glLevel(density)}`}>GL {density}</span> {GL_LEVEL_TEXT[glLevel(density)]}, used for sorting
+                    </dd>
+                  </div>
+                )}
+                <div>
+                  <dt>Bigger portions</dt>
+                  <dd>
+                    {[1, 2, 3].map((n) => (
+                      <span key={n} className="gl-scale">
+                        {n}× serving <b className={`gl-${glLevel(food.gl! * n)}`}>GL {food.gl! * n}</b>
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              </dl>
+            </>
+          )}
           <p className="muted small">
-            How much a serving raises blood sugar, combining its GI and carbohydrate. Low ≤10, medium 11–19, high ≥20. Estimated from published GI
-            tables; it varies with ripeness, cooking and portion size, and is separate from the FODMAP rating.
+            How much food raises blood sugar, combining its GI and carbohydrate. It grows with portion size. Low ≤10, medium 11–19, high ≥20 per
+            serving. Estimated from published GI tables; it varies with ripeness, cooking and portion, and is separate from the FODMAP rating.
           </p>
         </section>
       )}

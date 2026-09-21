@@ -48,6 +48,9 @@ export interface Food {
   /** Estimated glycaemic load per typical serving (glServing). */
   gl?: number;
   glServing?: string;
+  /** Weight (g, as eaten) or volume (ml) of glServing, for comparing GL per 100g / per glass. */
+  glAmount?: number;
+  glUnit?: 'g' | 'ml';
   custom?: boolean;
   hidden?: boolean;
 }

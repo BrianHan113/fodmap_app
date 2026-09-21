@@ -604,6 +604,36 @@ button:disabled {
   gap: 12px;
   margin-bottom: 8px;
 }
+.gl-tag small {
+  font-size: 9px;
+  font-weight: 500;
+  margin-left: 1px;
+}
+.gl-rows {
+  margin: 0 0 8px;
+  display: grid;
+  gap: 8px;
+}
+.gl-rows > div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.gl-rows dt {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.gl-rows dd {
+  margin: 0;
+  font-size: 14px;
+}
+.gl-scale {
+  display: inline-block;
+  margin-right: 12px;
+  white-space: nowrap;
+}
 .legend-gl {
   flex-basis: 100%;
 }
@@ -648,6 +678,10 @@ button:disabled {
 }
 .safe-yes {
   background: var(--low-soft);
+  border-color: transparent;
+}
+.safe-caution {
+  background: var(--mod-soft);
   border-color: transparent;
 }
 .safe-no {

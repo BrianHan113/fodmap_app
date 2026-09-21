@@ -587,7 +587,13 @@ const FODMAP_FREE = new Set(
 
 export const SEED_FOODS: Food[] = buildFoods().map((f) => {
   const gl = GL_DATA[f.id];
-  return { ...f, ...(gl && { gl: gl[0], glServing: gl[1] }), ...(FODMAP_FREE.has(f.id) && { fodmapFree: true }) };
+  const amount = gl?.[2]?.match(/^(\d+(?:\.\d+)?)(g|ml)$/);
+  return {
+    ...f,
+    ...(gl && { gl: gl[0], glServing: gl[1] }),
+    ...(amount && { glAmount: Number(amount[1]), glUnit: amount[2] as 'g' | 'ml' }),
+    ...(FODMAP_FREE.has(f.id) && { fodmapFree: true }),
+  };
 });
 
 export const FODMAP_FREE_IDS: ReadonlySet<string> = FODMAP_FREE;

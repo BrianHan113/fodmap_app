@@ -9,7 +9,7 @@ import { foodSymptomStats } from './correlations';
 import { addDays, daysBetween } from './dates';
 import { computeLoad, stackingWarnings } from './fodmapLoad';
 import { bigSafePortion, combinedRank, lowInLargePortions, mergeFoods, safeServing, servingAmount, sortFoods } from './foods';
-import { glLevel } from './glycemic';
+import { glDensity, glLevel } from './glycemic';
 import { eliminationDay, reintroReadiness, reintroState } from './phase';
 import { personalVerdict, toleranceMap } from './tolerance';
 
@@ -90,11 +90,21 @@ describe('food database', () => {
     expect(bigSafePortion(byName('Apple'))).toBe(false); // no low serving
   });
 
-  it('every seed food has a glycaemic load and serving', () => {
+  it('every seed food has a glycaemic load, serving and (if it has carbs) serving weight', () => {
     for (const f of SEED_FOODS) {
       expect(f.gl, f.name).toBeTypeOf('number');
       expect(f.glServing, f.name).toBeTruthy();
+      if (f.gl! > 0) expect(f.glAmount, f.name).toBeGreaterThan(0);
+      expect(glDensity(f), f.name).toBeTypeOf('number');
     }
+  });
+
+  it('compares GL per 100g (per glass for drinks)', () => {
+    expect(glDensity(byName('Sugar (white, brown, raw)'))).toBe(67); // 8 per 12g
+    expect(glDensity(byName('Rice, white / basmati / jasmine'))).toBe(17); // 32 per 190g
+    expect(glDensity(byName('Carrot'))).toBe(3);
+    expect(glDensity(byName('Chicken (plain)'))).toBe(0);
+    expect(glDensity(byName('Soft drink (sugar-sweetened)'))).toBe(17); // 25 per 375ml -> per 250ml
   });
 
   it('bands glycaemic load at 10 and 20', () => {
@@ -103,14 +113,18 @@ describe('food database', () => {
 
   it('sorts by GL and by combined FODMAP + GL', () => {
     const picks = ['Rice, white / basmati / jasmine', 'Carrot', 'Apple', 'Bagel, wheat', 'Chicken (plain)', 'Oats, rolled'].map(byName);
+    // By GL per 100g: bagel (28/100g) is densest; rice is 17/100g cooked.
     const glLow = sortFoods(picks, 'gl-low').map((f) => f.name);
     expect(glLow[0]).toBe('Chicken (plain)');
-    expect(glLow.at(-1)).toBe('Rice, white / basmati / jasmine');
-    expect(sortFoods(picks, 'gl-high')[0].name).toBe('Rice, white / basmati / jasmine');
+    expect(glLow.at(-1)).toBe('Bagel, wheat');
+    expect(sortFoods(picks, 'gl-high')[0].name).toBe('Bagel, wheat');
     // Chicken & carrot: low FODMAP + low GL. Bagel: high FODMAP + high GL is last.
     const combined = sortFoods(picks, 'combined').map((f) => f.name);
     expect(combined.slice(0, 2).sort()).toEqual(['Carrot', 'Chicken (plain)']);
     expect(combined.at(-1)).toBe('Bagel, wheat');
+    // Sugar has no FODMAPs but is very high GL per 100g, so it must not rank as "eat freely".
+    const sweet = ['Sugar (white, brown, raw)', 'Carrot', 'Chicken (plain)', 'Rice, white / basmati / jasmine'].map(byName);
+    expect(sortFoods(sweet, 'combined').map((f) => f.name)).toEqual(['Chicken (plain)', 'Carrot', 'Rice, white / basmati / jasmine', 'Sugar (white, brown, raw)']);
     // Unknown GL is treated as high in the combined ranking and sorts last by GL.
     const noGl: Food = { id: 'x', name: 'Mystery', category: 'Snacks', servings: [{ label: '1', level: 'low', groups: {} }] };
     expect(combinedRank(noGl)[0]).toBe(2);

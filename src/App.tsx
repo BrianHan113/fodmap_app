@@ -10,6 +10,7 @@ import FoodDetail from './pages/FoodDetail';
 import FoodEditor from './pages/FoodEditor';
 import FoodGuide from './pages/FoodGuide';
 import History from './pages/History';
+import LlmExport from './pages/LlmExport';
 import MealForm from './pages/MealForm';
 import Onboarding from './pages/Onboarding';
 import Reintro from './pages/Reintro';
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="/reintro" element={<Reintro />} />
             <Route path="/reintro/:id" element={<ChallengePage />} />
             <Route path="/insights" element={<Suspense fallback={null}><Insights /></Suspense>} />
+            <Route path="/export" element={<LlmExport />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/foods/:id" element={<FoodEditor />} />
             <Route path="*" element={<Today />} />

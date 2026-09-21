@@ -143,6 +143,9 @@ export default function SettingsPage() {
           }}
         />
         {msg && <p className="small">{msg}</p>}
+        <Link to="/export" className="btn block">
+          Export diary for AI analysis
+        </Link>
         <button className="btn danger block" onClick={doReset}>
           Delete all data
         </button>

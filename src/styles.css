@@ -1241,3 +1241,17 @@ button:disabled {
 .dots span.on {
   background: var(--primary);
 }
+
+/* ── AI export ── */
+.export-preview {
+  margin: 0;
+  max-height: 50dvh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.5 ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px;
+  user-select: text;
+}

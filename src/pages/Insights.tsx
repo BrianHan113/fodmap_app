@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Icon } from '../components/Icon';
 import { Header, Segmented } from '../components/ui';
 import { CHALLENGES } from '../data/challenges';
 import { BRISTOL } from '../data/bristol';
@@ -67,6 +68,13 @@ export default function Insights() {
   return (
     <>
       <Header title="Insights" />
+      <Link to="/export" className="card link-card">
+        <div className="grow">
+          <h2>Export for AI analysis</h2>
+          <p className="muted small">Copy your diary for a date range with a ready-made prompt, then paste it into an AI assistant to find patterns.</p>
+        </div>
+        <Icon name="chevron" />
+      </Link>
       <Segmented
         value={range}
         onChange={setRange}

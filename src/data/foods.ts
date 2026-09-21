@@ -184,6 +184,7 @@ const ROWS: Row[] = [
   ['Oats, rolled', 'grain', '1/2 cup dry (52g):L|1 cup dry:M fn gos'],
   ['Oats, quick', 'grain', '1/4 cup dry (23g):L|1/2 cup:M fn'],
   ['Oat bran', 'grain', '2 tbsp (22g):L'],
+  ['Psyllium husk', 'grain', '1 tbsp (5g):L', 'Soluble fibre that can help both constipation and loose stools in IBS. Start with 1 tsp and build up slowly, with plenty of water.'],
   ['Millet', 'grain', '1 cup cooked (174g):L'],
   ['Buckwheat groats', 'grain', '3/4 cup cooked (135g):L'],
   ['Polenta / cornmeal', 'grain', '1 cup cooked (240g):L'],

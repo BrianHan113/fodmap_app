@@ -604,6 +604,12 @@ button:disabled {
   gap: 12px;
   margin-bottom: 8px;
 }
+.gl-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
 .gl-tag small {
   font-size: 9px;
   font-weight: 500;

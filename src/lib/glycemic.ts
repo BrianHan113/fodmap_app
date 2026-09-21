@@ -38,6 +38,22 @@ export function glDensityText(food: Food): string {
   return food.glUnit === 'ml' ? `per ${GLASS_ML}ml glass` : 'per 100g';
 }
 
+/**
+ * Compact serving the GL applies to, always with its weight when known:
+ * "1 cup cooked (basmati lower, jasmine higher)" -> "1 cup cooked (190g)",
+ * "1 medium (150g), boiled" -> "1 medium (150g)".
+ */
+export function glServingShort(food: Food): string {
+  if (!food.glServing) return '';
+  let s = food.glServing
+    .replace(/\s*\((?!\d+(?:\.\d+)?\s*(?:g|ml)\))[^)]*\)/gi, '') // drop explanatory notes, keep "(150g)"
+    .split(',')[0]
+    .trim();
+  const amt = food.glAmount ? `${food.glAmount}${food.glUnit}` : '';
+  if (amt && !s.includes(amt) && s !== amt) s += ` (${amt})`;
+  return s;
+}
+
 /** "per 1 cup cooked (190g)", or "(negligible carbohydrate)" for carb-free foods. */
 export function glBasisText(food: Food): string {
   if (!food.glServing) return '';

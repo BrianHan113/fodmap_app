@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon';
 import { Header, LevelBadge, VerdictBadge } from '../components/ui';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { safeServing } from '../lib/foods';
-import { GL_LEVEL_TEXT, glBasisText, glDensity, glDensityText, glLevel } from '../lib/glycemic';
+import { GL_LEVEL_TEXT, glDensity, glDensityText, glLevel, glServingShort } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { GROUP_LABEL, type Group } from '../types';
 
@@ -61,7 +61,7 @@ export default function FoodDetail() {
             <div className="safe-label">No FODMAPs</div>
             <div className="safe-amount">Portion still matters</div>
             <div className="small">
-              for blood sugar: {GL_LEVEL_TEXT[glLevel(density!)]} ({density} {glDensityText(food)})
+              for blood sugar: GL {food.gl} per {glServingShort(food)}, and more if you eat more
             </div>
           </>
         ) : food.fodmapFree ? (
@@ -146,25 +146,25 @@ export default function FoodDetail() {
             <>
               <dl className="gl-rows">
                 <div>
-                  <dt>Per serving</dt>
+                  <dt>{glServingShort(food)}</dt>
                   <dd>
-                    <span className={`gl-tag gl-${glLevel(food.gl)}`}>GL {food.gl}</span> {GL_LEVEL_TEXT[glLevel(food.gl)]} {glBasisText(food)}
+                    <span className={`gl-tag gl-${glLevel(food.gl)}`}>GL {food.gl}</span> {GL_LEVEL_TEXT[glLevel(food.gl)]} for this amount
                   </dd>
                 </div>
                 {density !== undefined && (
                   <div>
                     <dt>{glDensityText(food) === 'per 100g' ? 'Per 100g' : 'Per glass (250ml)'}</dt>
                     <dd>
-                      <span className={`gl-tag gl-${glLevel(density)}`}>GL {density}</span> {GL_LEVEL_TEXT[glLevel(density)]}, used for sorting
+                      <span className={`gl-tag gl-${glLevel(density)}`}>GL {density}</span> {GL_LEVEL_TEXT[glLevel(density)]}, used for GL sorting
                     </dd>
                   </div>
                 )}
                 <div>
                   <dt>Bigger portions</dt>
                   <dd>
-                    {[1, 2, 3].map((n) => (
+                    {[2, 3].map((n) => (
                       <span key={n} className="gl-scale">
-                        {n}× serving <b className={`gl-${glLevel(food.gl! * n)}`}>GL {food.gl! * n}</b>
+                        {n}× <b className={`gl-${glLevel(food.gl! * n)}`}>GL {food.gl! * n}</b>
                       </span>
                     ))}
                   </dd>
@@ -173,8 +173,8 @@ export default function FoodDetail() {
             </>
           )}
           <p className="muted small">
-            How much food raises blood sugar, combining its GI and carbohydrate. It grows with portion size. Low ≤10, medium 11–19, high ≥20 per
-            serving. Estimated from published GI tables; it varies with ripeness, cooking and portion, and is separate from the FODMAP rating.
+            How much a given amount of food raises blood sugar, combining its GI and carbohydrate. Each number applies only to the amount shown:
+            eat twice as much and the GL doubles. Low ≤10, medium 11–19, high ≥20. Estimated from published GI tables; it varies with ripeness, cooking and portion, and is separate from the FODMAP rating.
           </p>
         </section>
       )}

@@ -9,7 +9,7 @@ import { foodSymptomStats } from './correlations';
 import { addDays, daysBetween } from './dates';
 import { computeLoad, stackingWarnings } from './fodmapLoad';
 import { bigSafePortion, combinedRank, lowInLargePortions, mergeFoods, safeServing, servingAmount, sortFoods } from './foods';
-import { glDensity, glLevel } from './glycemic';
+import { glDensity, glLevel, glServingShort } from './glycemic';
 import { eliminationDay, reintroReadiness, reintroState } from './phase';
 import { personalVerdict, toleranceMap } from './tolerance';
 
@@ -97,6 +97,15 @@ describe('food database', () => {
       if (f.gl! > 0) expect(f.glAmount, f.name).toBeGreaterThan(0);
       expect(glDensity(f), f.name).toBeTypeOf('number');
     }
+  });
+
+  it('states GL servings compactly with their weight', () => {
+    expect(glServingShort(byName('Sugar (white, brown, raw)'))).toBe('1 tbsp (12g)');
+    expect(glServingShort(byName('Rice, white / basmati / jasmine'))).toBe('1 cup cooked (190g)');
+    expect(glServingShort(byName('Potato, white'))).toBe('1 medium (150g)');
+    expect(glServingShort(byName('Soft drink (sugar-sweetened)'))).toBe('1 can (375ml)');
+    expect(glServingShort(byName('Blueberries'))).toBe('1 cup (125g)');
+    expect(glServingShort(byName('Cashews'))).toBe('30g');
   });
 
   it('compares GL per 100g (per glass for drinks)', () => {

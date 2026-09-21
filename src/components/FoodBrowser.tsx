@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
 import { bigSafePortion, lowInLargePortions, matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
-import { glBasisText, glDensity, glDensityUnit, glLevel } from '../lib/glycemic';
+import { glLevel, glServingShort } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { CATEGORIES, type Food } from '../types';
 import { Icon } from './Icon';
@@ -125,7 +125,10 @@ export function FoodBrowser({
       <div className="guide-tools">
         <div className="legend small muted">
           <LevelDot level="low" /> low <LevelDot level="moderate" /> moderate <LevelDot level="high" /> high FODMAP at smallest serving
-          <span className="legend-gl">GL = glycaemic load per 100g (drinks: per 250ml glass): low ≤10 · medium 11–19 · high ≥20</span>
+          <span className="legend-gl">
+            GL = glycaemic load for the serving shown (low ≤10 · medium 11–19 · high ≥20). It grows with portion size. GL sorts compare per 100g so
+            small servings don't look low.
+          </span>
         </div>
         <label className="sort small muted">
           Sort
@@ -150,9 +153,9 @@ export function FoodBrowser({
               <span className="grow">
                 <span className="row-title">{f.name}</span>
                 <span className="row-sub">{f.fodmapFree ? 'No FODMAPs' : safe ? `Low: up to ${safe.label}` : 'No low-FODMAP serving'}</span>
+                <GlLine food={f} />
               </span>
               {verdict && verdict !== 'untested' && <VerdictBadge verdict={verdict} />}
-              <GlTag food={f} />
             </>
           );
           const fav = favourites.has(f.id);
@@ -207,16 +210,12 @@ export function FoodBrowser({
   );
 }
 
-/** GL per 100g (per glass for drinks), coloured by band; falls back to per-serving GL if the serving size is unknown. */
-function GlTag({ food }: { food: Food }) {
+/** "GL 8 per 1 tbsp (12g)": GL is only meaningful for a stated amount, so always show it with its serving. */
+function GlLine({ food }: { food: Food }) {
   if (food.gl === undefined) return null;
-  const density = glDensity(food);
-  const value = density ?? food.gl;
-  const title = `Glycaemic load ${food.gl} ${glBasisText(food)}${density !== undefined && food.gl > 0 ? `; ${density} ${glDensityUnit(food).replace('/', 'per ')}` : ''}`;
   return (
-    <span className={`gl-tag gl-${glLevel(value)}`} title={title}>
-      GL {value}
-      {density !== undefined && density > 0 && <small>{glDensityUnit(food)}</small>}
+    <span className="row-sub gl-line">
+      <span className={`gl-tag gl-${glLevel(food.gl)}`}>GL {food.gl}</span> {food.gl === 0 ? 'no carbohydrate' : `per ${glServingShort(food)}`}
     </span>
   );
 }

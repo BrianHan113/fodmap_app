@@ -162,6 +162,8 @@ button:disabled {
   align-items: center;
   gap: 8px;
   padding: calc(8px + env(safe-area-inset-top)) 0 8px;
+  /* Fixed height so sticky elements below (food search) can offset by it. */
+  min-height: calc(56px + env(safe-area-inset-top));
   background: var(--bg);
 }
 .topbar h1 {
@@ -544,6 +546,35 @@ button:disabled {
 }
 .chips::-webkit-scrollbar {
   display: none;
+}
+/* Mouse/trackpad: a hidden horizontal scroller can't be reached with a wheel, so wrap instead. */
+@media (hover: hover) and (pointer: fine) {
+  .chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+.guide-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 2px 8px;
+}
+.guide-tools .legend {
+  margin: 0;
+}
+.sort select {
+  width: auto;
+  min-height: 36px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+.sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .chip {
   flex: none;

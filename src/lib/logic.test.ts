@@ -8,7 +8,7 @@ import { evaluateChallenge, reactionThreshold } from './challengeOutcome';
 import { foodSymptomStats } from './correlations';
 import { addDays, daysBetween } from './dates';
 import { computeLoad, stackingWarnings } from './fodmapLoad';
-import { mergeFoods, safeServing } from './foods';
+import { mergeFoods, safeServing, sortFoods } from './foods';
 import { eliminationDay, reintroReadiness, reintroState } from './phase';
 import { personalVerdict, toleranceMap } from './tolerance';
 
@@ -36,6 +36,19 @@ describe('food database', () => {
   it('finds the largest safe serving', () => {
     expect(safeServing(byName('Avocado'))?.label).toBe('1/8 avocado (30g)');
     expect(safeServing(byName('Apple'))).toBeUndefined();
+  });
+
+  it('sorts by FODMAP level in both directions', () => {
+    const picks = ['Garlic', 'Carrot', 'Avocado', 'Apple', 'Honey'].map(byName);
+    const low = sortFoods(picks, 'low').map((f) => f.name);
+    // Carrot is low at every serving; Avocado/Honey are low only in small amounts; Apple/Garlic have no low serving.
+    expect(low[0]).toBe('Carrot');
+    expect(low.slice(1, 3).sort()).toEqual(['Avocado', 'Honey']);
+    expect(low.slice(3).sort()).toEqual(['Apple', 'Garlic']);
+    const high = sortFoods(picks, 'high').map((f) => f.name);
+    expect(high.at(-1)).toBe('Carrot');
+    expect(high.slice(0, 2).sort()).toEqual(['Apple', 'Garlic']);
+    expect(sortFoods(picks, 'name').map((f) => f.name)).toEqual(['Apple', 'Avocado', 'Carrot', 'Garlic', 'Honey']);
   });
 
   it('applies user overrides and hides foods', () => {

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { Header, LevelDot, VerdictBadge } from '../components/ui';
 import { useChallenges, useFoods } from '../db/hooks';
-import { matchesQuery, safeServing } from '../lib/foods';
+import { matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { CATEGORIES } from '../types';
 
@@ -14,6 +14,7 @@ export default function FoodGuide() {
   const q = params.get('q') ?? '';
   const cat = params.get('cat') ?? '';
   const lowOnly = params.get('low') === '1';
+  const sort = (params.get('sort') as FoodSort | null) ?? 'name';
 
   const set = (k: string, v: string) => {
     const p = new URLSearchParams(params);
@@ -27,10 +28,11 @@ export default function FoodGuide() {
 
   const foods = useMemo(
     () =>
-      list.filter(
-        (f) => matchesQuery(f, q) && (!cat || f.category === cat) && (!lowOnly || f.servings.some((s) => s.level === 'low')),
+      sortFoods(
+        list.filter((f) => matchesQuery(f, q) && (!cat || f.category === cat) && (!lowOnly || f.servings.some((s) => s.level === 'low'))),
+        sort,
       ),
-    [list, q, cat, lowOnly],
+    [list, q, cat, lowOnly, sort],
   );
 
   return (
@@ -55,8 +57,18 @@ export default function FoodGuide() {
           </button>
         ))}
       </div>
-      <div className="legend small muted">
-        <LevelDot level="low" /> low <LevelDot level="moderate" /> moderate <LevelDot level="high" /> high at smallest serving
+      <div className="guide-tools">
+        <div className="legend small muted">
+          <LevelDot level="low" /> low <LevelDot level="moderate" /> moderate <LevelDot level="high" /> high at smallest serving
+        </div>
+        <label className="sort small muted">
+          Sort
+          <select value={sort} onChange={(e) => set('sort', e.target.value === 'name' ? '' : e.target.value)}>
+            <option value="name">A–Z</option>
+            <option value="low">Lowest FODMAP first</option>
+            <option value="high">Highest FODMAP first</option>
+          </select>
+        </label>
       </div>
       <ul className="list card flush">
         {foods.map((f) => {

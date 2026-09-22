@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Icon } from './components/Icon';
 import { SettingsContext, useSettingsQuery } from './db/hooks';
 import BowelForm from './pages/BowelForm';
@@ -49,6 +50,7 @@ export default function App() {
     <SettingsContext.Provider value={settings}>
       <div className="app">
         <main className="content">
+          <ErrorBoundary key={pathname}>
           <Routes>
             <Route path="/" element={<Today />} />
             <Route path="/foods" element={<FoodGuide />} />
@@ -67,6 +69,7 @@ export default function App() {
             <Route path="/settings/foods/:id" element={<FoodEditor />} />
             <Route path="*" element={<Today />} />
           </Routes>
+          </ErrorBoundary>
         </main>
         <nav className="tabbar">
           {TABS.map((t) => (

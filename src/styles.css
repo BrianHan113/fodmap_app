@@ -1470,3 +1470,34 @@ button:disabled {
   padding: 10px;
   user-select: text;
 }
+
+/* ── Error boundary ── */
+.crash {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 24px 4px;
+}
+.crash h1 {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+.crash-actions {
+  margin: 16px 0;
+}
+.crash-details {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.crash-details summary {
+  color: var(--muted);
+  cursor: pointer;
+}
+.crash-details pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 10px;
+  max-height: 40dvh;
+  overflow: auto;
+}

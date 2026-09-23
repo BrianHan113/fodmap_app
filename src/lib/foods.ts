@@ -13,14 +13,29 @@ export function seedFood(id: string): Food | undefined {
   return SEED_FOODS.find((f) => f.id === id);
 }
 
-/** The largest low-FODMAP serving, if any. */
-export function safeServing(food: Food): Serving | undefined {
-  return [...food.servings].reverse().find((s) => s.level === 'low');
+/**
+ * Serving options smallest first, with their original indexes. Logged meals store the index,
+ * so new tested amounts are appended to the data rather than inserted; this puts them in order
+ * for display.
+ */
+export function orderedServings(food: Food): { serving: Serving; index: number }[] {
+  return food.servings
+    .map((serving, index) => ({ serving, index }))
+    .sort((a, b) => {
+      const ga = a.serving.grams;
+      const gb = b.serving.grams;
+      return ga === undefined || gb === undefined ? a.index - b.index : ga - gb || a.index - b.index;
+    });
 }
 
-/** Overall rating of a food = rating of its first (smallest) serving tier. */
+/** The largest low-FODMAP serving, if any. */
+export function safeServing(food: Food): Serving | undefined {
+  return [...orderedServings(food)].reverse().find((o) => o.serving.level === 'low')?.serving;
+}
+
+/** Overall rating of a food = rating of its smallest serving tier. */
 export function baseLevel(food: Food): Level {
-  return food.servings[0]?.level ?? 'low';
+  return orderedServings(food)[0]?.serving.level ?? 'low';
 }
 
 const LEVEL_RANK: Record<Level, number> = { low: 0, moderate: 1, high: 2 };

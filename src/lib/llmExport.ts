@@ -3,7 +3,7 @@ import { CHALLENGE_BY_GROUP } from '../data/challenges';
 import { GROUPS, GROUP_LABEL, type BowelEntry, type Challenge, type DayLog, type Food, type Group, type Meal, type Settings, type SymptomEntry } from '../types';
 import { OUTCOME_LABEL } from './challengeOutcome';
 import { dateRange, formatDate } from './dates';
-import { computeLoad, stackingWarnings } from './fodmapLoad';
+import { amountText, computeLoad, resolveItem, stackingWarnings } from './fodmapLoad';
 import { glDensity, glDensityText } from './glycemic';
 import { mealTitle } from './mealTiming';
 import { macroLine, sumNutrition } from './nutrition';
@@ -43,7 +43,7 @@ Food ratings in the data (low / moderate / high, and which FODMAP groups) come f
 const SCALES = `- Symptoms: bloating, abdominal pain, gas, nausea, each 0–10 (0 = none, 10 = worst). "Worst" = the highest of the four.
 - Bowel movements: Bristol stool type 1–7 (3–4 ideal, 1–2 constipated, 6–7 diarrhoea); urgency 0–3.
 - Daily check-in: overall gut day 0–10 (10 = great), mood 1–5, stress 0–10, sleep hours and quality 1–5, exercise minutes, water glasses.
-- Meal FODMAP load per group: each moderate serving adds 1, each high serving adds 2 (≥2 in one meal = high load).
+- FODMAP ratings are for the total amount eaten (serving × quantity), matched to the nearest tested amount. Meal FODMAP load per group: a moderate amount adds 1, a high amount 2 (≥2 in one meal = high load).
 - Nutrition: approximate calories and macros from typical food composition values; carbs include fibre.
 - GL = estimated glycaemic load for the typical serving stated, plus GL per 100g (per 250ml for drinks) to compare foods fairly. Bands: low ≤10, medium 11–19, high ≥20. GL scales with the amount actually eaten and is separate from the FODMAP rating.`;
 
@@ -53,7 +53,7 @@ function fmtNum(n: number | undefined, digits = 1): string {
 
 function loadText(meal: Meal, foods: Map<string, Food>): string | undefined {
   const load = computeLoad(meal.items, foods);
-  const parts = GROUPS.filter((g) => load[g] > 0).map((g) => `${GROUP_LABEL[g].toLowerCase()} ${load[g]}`);
+  const parts = GROUPS.filter((g) => load[g] > 0).map((g) => `${GROUP_LABEL[g].toLowerCase()} ${Math.round(load[g] * 10) / 10}`);
   if (!parts.length) return undefined;
   const stacked = stackingWarnings(meal.items, foods).map((w) => GROUP_LABEL[w.group].toLowerCase());
   return `load: ${parts.join(', ')}${stacked.length ? ` (stacking: ${stacked.join(', ')})` : ''}`;
@@ -63,14 +63,19 @@ function mealLine(meal: Meal, foods: Map<string, Food>): string {
   const items = meal.items.map((i) => {
     const f = foods.get(i.foodId);
     const s = f?.servings[i.servingIndex];
+    const r = resolveItem(i, foods);
     const qty = i.qty !== 1 ? `${i.qty}× ` : '';
-    const groups = s ? (Object.keys(s.groups) as Group[]).map((g) => GROUP_LABEL[g].toLowerCase()).join(', ') : '';
+    const total = i.qty !== 1 && r.grams !== undefined ? ` (${amountText(r.grams, f)} total)` : '';
+    const groups = (Object.keys(r.groups) as Group[]).map((g) => GROUP_LABEL[g].toLowerCase()).join(', ');
+    const untested = r.beyondTested
+      ? `; above the largest amount tested as low (${r.largestTier?.label})${r.nextTier ? `, ${r.nextTier.level} at ${r.nextTier.label}` : ''}`
+      : '';
     const density = f && glDensity(f);
     const gl =
       f?.gl === undefined ? '' : f.gl === 0 ? '; GL 0' : `; GL ${f.gl} per ${f.glServing}${density !== undefined ? `, ${density} ${glDensityText(f)}` : ''}`;
-    const level = f?.fodmapFree ? 'no FODMAPs' : s?.level;
-    const rating = s ? ` [${level}${groups ? `: ${groups}` : ''}${gl}]` : '';
-    return `${f?.name ?? 'Unknown food'}, ${qty}${s?.label ?? '?'}${rating}`;
+    const level = f?.fodmapFree ? 'no FODMAPs' : r.level;
+    const rating = s ? ` [${level}${groups ? `: ${groups}` : ''}${untested}${gl}]` : '';
+    return `${f?.name ?? 'Unknown food'}, ${qty}${s?.label ?? '?'}${total}${rating}`;
   });
   const load = loadText(meal, foods);
   const nutrition = sumNutrition(meal.items, foods).total;

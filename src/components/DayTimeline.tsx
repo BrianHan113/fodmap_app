@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
 import { db } from '../db/db';
 import { useFoods, useSettings } from '../db/hooks';
-import { computeLoad, stackingWarnings } from '../lib/fodmapLoad';
+import { computeLoad, resolveItem, stackingWarnings } from '../lib/fodmapLoad';
 import { mealTitle } from '../lib/mealTiming';
 import { macroLine, sumNutrition } from '../lib/nutrition';
 import { entryScore, severityWord } from '../lib/symptoms';
@@ -48,11 +48,12 @@ export function DayTimeline({ date }: { date: string }) {
               <ul className="event-items">
                 {m.items.map((i, idx) => {
                   const f = map.get(i.foodId);
-                  const s = f?.servings[i.servingIndex];
+                  const r = resolveItem(i, map);
                   return (
                     <li key={idx}>
-                      {s && <LevelDot level={s.level} />} {i.qty !== 1 && `${i.qty}× `}
-                      {f?.name ?? 'Unknown food'} <span className="muted">· {s?.label}</span>
+                      {r.picked && <LevelDot level={r.beyondTested ? 'moderate' : r.level} />} {i.qty !== 1 && `${i.qty}× `}
+                      {f?.name ?? 'Unknown food'} <span className="muted">· {r.picked?.label}</span>
+                      {r.beyondTested && <span className="warn-inline"> · above tested low amount</span>}
                     </li>
                   );
                 })}

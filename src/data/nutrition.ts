@@ -273,6 +273,7 @@ export const NUTRITION: Record<string, NutritionRow> = {
   'fish-fresh-salmon-cod-etc': [150, 22, 0, 6.5, 0],
   'tuna-canned-in-oil-or-water': [150, 26, 0, 5, 0],
   'shrimp-prawns': [99, 24, 0.2, 0.3, 0],
+  'sardines-canned-in-oil-or-water': [208, 24.6, 0, 11.5, 0],
   eggs: [143, 12.6, 0.7, 9.5, 0],
   bacon: [393, 13, 0.7, 37, 0],
   'ham-deli': [120, 18, 2, 4, 0],

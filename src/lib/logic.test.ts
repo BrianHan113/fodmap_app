@@ -7,7 +7,7 @@ import { exportData, importData } from './backup';
 import { evaluateChallenge, reactionThreshold } from './challengeOutcome';
 import { foodSymptomStats } from './correlations';
 import { addDays, daysBetween } from './dates';
-import { computeLoad, stackingWarnings } from './fodmapLoad';
+import { computeLoad, resolveItem, stackingWarnings } from './fodmapLoad';
 import { bigSafePortion, combinedRank, lowInLargePortions, mergeFoods, safeServing, servingAmount, sortFoods } from './foods';
 import { glDensity, glLevel, glServingShort } from './glycemic';
 import { eliminationDay, reintroReadiness, reintroState } from './phase';
@@ -70,10 +70,11 @@ describe('food database', () => {
   });
 
   it('finds foods low at any amount and foods with a big safe portion', () => {
-    expect(lowInLargePortions(byName('Carrot'))).toBe(true); // low at 75g, nothing higher listed
+    expect(lowInLargePortions(byName('Carrot'))).toBe(true); // no FODMAPs detected
     expect(lowInLargePortions(byName('Avocado'))).toBe(false); // moderate at 1/4
-    expect(lowInLargePortions(byName('Soy sauce'))).toBe(false); // only tested at 2 tbsp
-    expect(lowInLargePortions(byName('Spinach, baby'))).toBe(false); // only 45g listed
+    expect(lowInLargePortions(byName('Soy sauce'))).toBe(true); // Monash: nil FODMAPs detected
+    expect(lowInLargePortions(byName('Maple syrup'))).toBe(false); // only tested at 2 tbsp
+    expect(lowInLargePortions(byName('Spinach, baby'))).toBe(false); // moderate fructans at 150g
     expect(lowInLargePortions(byName('Salt & pepper'))).toBe(true); // FODMAP-free
     expect(lowInLargePortions(byName('Chicken (plain)'))).toBe(true);
     expect(byName('Chicken (plain)').fodmapFree).toBe(true);
@@ -174,8 +175,33 @@ describe('FODMAP load', () => {
     expect(stackingWarnings([{ foodId: avo.id, servingIndex: 2, qty: 1 }], foodMap)).toHaveLength(0);
   });
 
-  it('warns for double portions of a moderate serving', () => {
-    expect(stackingWarnings([{ foodId: avo.id, servingIndex: 1, qty: 2 }], foodMap)).toHaveLength(1);
+  it('rates the total amount eaten, not the picked serving', () => {
+    // 2 × 1/8 avocado = 60g = the tested moderate tier.
+    const twoEighths = resolveItem({ foodId: avo.id, servingIndex: 0, qty: 2 }, foodMap);
+    expect(twoEighths.grams).toBe(60);
+    expect(twoEighths.level).toBe('moderate');
+    expect(computeLoad([{ foodId: avo.id, servingIndex: 0, qty: 2 }], foodMap).sorbitol).toBe(1);
+    // 2 × 1/4 avocado = 120g, past the 80g high tier: high, counted 1.5× that amount.
+    const twoQuarters = resolveItem({ foodId: avo.id, servingIndex: 1, qty: 2 }, foodMap);
+    expect(twoQuarters.level).toBe('high');
+    expect(computeLoad([{ foodId: avo.id, servingIndex: 1, qty: 2 }], foodMap).sorbitol).toBeCloseTo(3);
+    // A single food over its limit is flagged on the item, not as stacking.
+    expect(stackingWarnings([{ foodId: avo.id, servingIndex: 1, qty: 2 }], foodMap)).toHaveLength(0);
+  });
+
+  it('flags amounts above the largest tested low serving as untested', () => {
+    const spinach = byName('Spinach, baby'); // 75g low, 150g moderate
+    const r1 = resolveItem({ foodId: spinach.id, servingIndex: 0, qty: 1.5 }, foodMap); // 112g
+    expect(r1.level).toBe('low');
+    expect(r1.beyondTested).toBe(true); // past the 75g low limit, before the 150g moderate amount
+    expect(r1.nextTier?.label).toBe('3 cups (150g)');
+    expect(resolveItem({ foodId: spinach.id, servingIndex: 0, qty: 1 }, foodMap).beyondTested).toBe(false);
+    expect(resolveItem({ foodId: spinach.id, servingIndex: 0, qty: 2 }, foodMap).level).toBe('moderate'); // 150g
+    const choy = byName('Choy sum'); // only tested at 85g, low
+    expect(resolveItem({ foodId: choy.id, servingIndex: 0, qty: 1 }, foodMap).beyondTested).toBe(false);
+    expect(resolveItem({ foodId: choy.id, servingIndex: 0, qty: 2 }, foodMap).beyondTested).toBe(true);
+    // FODMAP-free foods have no limit.
+    expect(resolveItem({ foodId: byName('Carrot').id, servingIndex: 0, qty: 6 }, foodMap).beyondTested).toBe(false);
   });
 });
 

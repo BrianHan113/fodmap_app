@@ -643,6 +643,10 @@ button:disabled {
 .legend-gl {
   flex-basis: 100%;
 }
+.warn-inline {
+  color: var(--mod);
+  font-size: 13px;
+}
 .item-macros {
   font-size: 12px;
   color: var(--muted);

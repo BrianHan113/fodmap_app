@@ -16,7 +16,7 @@ export type GlEntry = [gl: number, serving: string, amount?: string];
 // Essentially no carbohydrate: GL 0 at any amount.
 const NONE = `
 beef-plain chicken-plain pork-plain lamb-plain turkey-plain fish-fresh-salmon-cod-etc tuna-canned-in-oil-or-water
-shrimp-prawns eggs bacon ham-deli
+shrimp-prawns sardines-canned-in-oil-or-water eggs bacon ham-deli
 cheese-cheddar cheese-parmesan cheese-swiss-gouda-edam cheese-mozzarella cheese-brie-camembert cheese-feta
 cheese-goat-ch-vre cheese-halloumi cheese-cream-cheese cheese-mascarpone butter ghee cream-heavy-whipping sour-cream
 olive-oil-vegetable-oils garlic-infused-oil onion-infused-oil soy-sauce tamari fish-sauce mustard-dijon-yellow

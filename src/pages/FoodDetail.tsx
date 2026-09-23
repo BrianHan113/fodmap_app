@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { Header, LevelBadge, VerdictBadge } from '../components/ui';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
-import { safeServing } from '../lib/foods';
+import { orderedServings, safeServing } from '../lib/foods';
 import { fmtNutrient, NUTRIENT_LABEL } from '../lib/nutrition';
 import { GL_LEVEL_TEXT, glDensity, glDensityText, glLevel, glServingShort } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
@@ -98,7 +98,7 @@ export default function FoodDetail() {
         <section className="card">
           <h2>Servings</h2>
           <ul className="tiers">
-            {food.servings.map((s, i) => (
+            {orderedServings(food).map(({ serving: s, index: i }) => (
               <li key={i} className={`tier tier-${s.level}`}>
                 <div className="tier-head">
                   <span className="grow">{s.label}</span>
@@ -188,7 +188,8 @@ export default function FoodDetail() {
               <tr>
                 <th />
                 <th className="num">{food.category === 'Drinks' ? '100ml' : '100g'}</th>
-                {food.servings
+                {orderedServings(food)
+                  .map((o) => o.serving)
                   .filter((s) => s.grams !== undefined)
                   .map((s, i) => (
                     <th key={i} className="num">
@@ -202,7 +203,8 @@ export default function FoodDetail() {
                 <tr key={n}>
                   <td>{NUTRIENT_LABEL[n]}</td>
                   <td className="num">{fmtNutrient(n, food.nutrition![n])}</td>
-                  {food.servings
+                  {orderedServings(food)
+                    .map((o) => o.serving)
                     .filter((s) => s.grams !== undefined)
                     .map((s, i) => (
                       <td key={i} className="num">

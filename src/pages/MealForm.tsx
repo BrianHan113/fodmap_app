@@ -9,7 +9,8 @@ import { Header, LevelDot, groupsText } from '../components/ui';
 import { db } from '../db/db';
 import { useFoods } from '../db/hooks';
 import { nowTime, toTimestamp, today } from '../lib/dates';
-import { computeLoad, stackingWarnings } from '../lib/fodmapLoad';
+import { amountText, computeLoad, resolveItem, stackingWarnings } from '../lib/fodmapLoad';
+import { orderedServings, safeServing } from '../lib/foods';
 import { MIN_MEAL_GAP_HOURS, fmtDuration, mealTitle, neighbourMeals, tooSoon } from '../lib/mealTiming';
 import { itemNutrition, macroLine, sumNutrition } from '../lib/nutrition';
 import { GROUP_LABEL, type Meal, type MealItem } from '../types';
@@ -140,12 +141,14 @@ export default function MealForm() {
         <ul className="meal-items">
           {items.map((it, idx) => {
             const f = map.get(it.foodId);
-            const s = f?.servings[it.servingIndex];
+            const r = resolveItem(it, map);
             const n = itemNutrition(it, map);
+            const safe = f && safeServing(f);
+            const eaten = r.grams !== undefined ? amountText(r.grams, f) : undefined;
             return (
               <li key={idx} className="meal-item">
                 <div className="meal-item-head">
-                  {s && <LevelDot level={s.level} />}
+                  {r.picked && <LevelDot level={r.beyondTested ? 'moderate' : r.level} />}
                   <span className="grow">{f?.name ?? 'Unknown food'}</span>
                   <button className="icon-btn" onClick={() => setItems(items.filter((_, i) => i !== idx))} aria-label="Remove">
                     <Icon name="close" size={18} />
@@ -153,11 +156,12 @@ export default function MealForm() {
                 </div>
                 <div className="meal-item-controls">
                   <select value={it.servingIndex} onChange={(e) => update(idx, { servingIndex: Number(e.target.value) })}>
-                    {f?.servings.map((sv, i) => (
-                      <option key={i} value={i}>
-                        {sv.label} ({sv.level})
-                      </option>
-                    ))}
+                    {f &&
+                      orderedServings(f).map(({ serving: sv, index: i }) => (
+                        <option key={i} value={i}>
+                          {sv.label} ({sv.level})
+                        </option>
+                      ))}
                   </select>
                   <div className="stepper">
                     <button onClick={() => update(idx, { qty: Math.max(0.5, it.qty - 0.5) })} aria-label="Less">
@@ -170,16 +174,19 @@ export default function MealForm() {
                   </div>
                 </div>
                 {n && <div className="item-macros">{macroLine(n)}</div>}
-                {s && s.level !== 'low' && (
-                  <div className={`hint hint-${s.level}`}>
-                    {s.level === 'high' ? 'High' : 'Moderate'} in {groupsText(s)}
-                    {f && f.servings[0].level === 'low' && ` · low at ${f.servings[0].label}`}
+                {r.tier && r.level !== 'low' && (
+                  <div className={`hint hint-${r.level}`}>
+                    {eaten && it.qty !== 1 && `${eaten} in total: `}
+                    {r.level === 'high' ? 'High' : 'Moderate'} in {groupsText(r.tier)}
+                    {safe && ` · low up to ${safe.label}`}
                   </div>
                 )}
-                {s && s.level === 'low' && it.qty > 1 && f && f.servings[it.servingIndex + 1] && (
+                {r.beyondTested && (
                   <div className="hint hint-moderate">
-                    {it.qty}× the low serving may exceed the safe amount. Next tier: {f.servings[it.servingIndex + 1].label} is{' '}
-                    {f.servings[it.servingIndex + 1].level}.
+                    {eaten ? `${eaten} is more than` : 'This is more than'} the largest amount tested as low ({r.largestTier?.label}).{' '}
+                    {r.nextTier
+                      ? `It becomes ${r.nextTier.level} in ${groupsText(r.nextTier)} at ${r.nextTier.label}, so this amount may not be low FODMAP.`
+                      : "Larger amounts haven't been tested, so it may not be low FODMAP."}
                   </div>
                 )}
               </li>

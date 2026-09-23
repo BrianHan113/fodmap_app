@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toggleFavourite, useChallenges, useFavourites, useFoods } from '../db/hooks';
-import { bigSafePortion, lowInLargePortions, matchesQuery, safeServing, sortFoods, type FoodSort } from '../lib/foods';
+import { baseLevel, bigSafePortion, lowInLargePortions, matchesQuery, orderedServings, safeServing, sortFoods, type FoodSort } from '../lib/foods';
 import { glLevel, glServingShort } from '../lib/glycemic';
 import { personalVerdict, toleranceMap } from '../lib/tolerance';
 import { CATEGORIES, type Food } from '../types';
@@ -149,7 +149,7 @@ export function FoodBrowser({
           const verdict = hasResults ? personalVerdict(f, tol) : undefined;
           const body = (
             <>
-              <LevelDot level={f.servings[0].level} />
+              <LevelDot level={baseLevel(f)} />
               <span className="grow">
                 <span className="row-title">{f.name}</span>
                 <span className="row-sub">{f.fodmapFree ? 'No FODMAPs' : safe ? `Low: up to ${safe.label}` : 'No low-FODMAP serving'}</span>
@@ -182,7 +182,7 @@ export function FoodBrowser({
                   </div>
                   {open === f.id && (
                     <div className="serving-choices">
-                      {f.servings.map((s, i) => (
+                      {orderedServings(f).map(({ serving: s, index: i }) => (
                         <button key={i} className={`serving-choice sc-${s.level}`} onClick={() => onPick(f, i)}>
                           <LevelDot level={s.level} />
                           <span className="grow">{s.label}</span>

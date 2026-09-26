@@ -1,14 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { FoodPicker } from '../components/FoodPicker';
 import { Icon } from '../components/Icon';
 import { LoadBars } from '../components/LoadBars';
 import { NutritionSummary } from '../components/NutritionSummary';
-import { Header, LevelDot, groupsText } from '../components/ui';
+import { DraftNotice, Header, LevelDot, groupsText } from '../components/ui';
 import { db } from '../db/db';
 import { useFoods } from '../db/hooks';
 import { nowTime, toTimestamp, today } from '../lib/dates';
+import { useDraft } from '../lib/draft';
 import { amountText, computeLoad, resolveItem, stackingWarnings } from '../lib/fodmapLoad';
 import { orderedServings, safeServing } from '../lib/foods';
 import { MIN_MEAL_GAP_HOURS, fmtDuration, mealTitle, neighbourMeals, tooSoon } from '../lib/mealTiming';
@@ -16,6 +17,16 @@ import { itemNutrition, macroLine, sumNutrition } from '../lib/nutrition';
 import { GROUP_LABEL, type Meal, type MealItem } from '../types';
 
 const NAME_SUGGESTIONS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+
+interface MealFields {
+  date: string;
+  time: string;
+  name: string;
+  items: MealItem[];
+  note: string;
+}
+
+const EMPTY: MealFields = { date: '', time: '', name: '', items: [], note: '' };
 
 export default function MealForm() {
   const { id } = useParams();
@@ -25,27 +36,30 @@ export default function MealForm() {
   const isNew = id === 'new';
   const mealId = isNew ? undefined : Number(id);
 
-  const [date, setDate] = useState(params.get('date') ?? today());
-  const [time, setTime] = useState(nowTime());
-  const [name, setName] = useState('');
-  const [items, setItems] = useState<MealItem[]>([]);
-  const [note, setNote] = useState('');
+  const draft = useDraft<MealFields>(
+    `meal:${id}`,
+    () => ({ date: params.get('date') ?? today(), time: nowTime(), name: '', items: [], note: '' }),
+    mealId === undefined
+      ? undefined
+      : () =>
+          db.meals.get(mealId).then(
+            (m) =>
+              m && {
+                date: m.date,
+                time: m.time,
+                // Older logs used a fixed type; carry it over as the name.
+                name: m.name ?? (m.type ? mealTitle(m) : ''),
+                items: m.items,
+                note: m.note ?? '',
+              },
+          ),
+  );
+  const { date, time, name, items, note } = draft.value ?? EMPTY;
+  const set = draft.set;
+  const setItems = (items: MealItem[]) => set({ items });
   const [picking, setPicking] = useState(false);
 
   const allMeals = useLiveQuery(() => db.meals.toArray(), []) ?? [];
-
-  useEffect(() => {
-    if (mealId === undefined) return;
-    db.meals.get(mealId).then((m) => {
-      if (!m) return;
-      setDate(m.date);
-      setTime(m.time);
-      // Older logs used a fixed type; carry it over as the name.
-      setName(m.name ?? (m.type ? mealTitle(m) : ''));
-      setItems(m.items);
-      setNote(m.note ?? '');
-    });
-  }, [mealId]);
 
   const update = (idx: number, patch: Partial<MealItem>) => setItems(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   const warnings = stackingWarnings(items, map);
@@ -70,14 +84,18 @@ export default function MealForm() {
     const meal: Meal = { date, time, name: name.trim() || undefined, items, note: note.trim() || undefined };
     if (mealId === undefined) await db.meals.add(meal);
     else await db.meals.put({ ...meal, id: mealId });
+    draft.clear();
     nav(-1);
   };
 
   const remove = async () => {
     if (!confirm('Delete this meal?')) return;
     await db.meals.delete(mealId!);
+    draft.clear();
     nav(-1);
   };
+
+  if (!draft.value) return null;
 
   return (
     <>
@@ -92,10 +110,11 @@ export default function MealForm() {
           )
         }
       />
+      {draft.restored && <DraftNotice onDiscard={draft.discard} />}
       <section className="card">
         <label className="field first">
           <span>Name (optional)</span>
-          <input list="meal-names" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Breakfast, post-gym snack" />
+          <input list="meal-names" value={name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Breakfast, post-gym snack" />
           <datalist id="meal-names">
             {usedNames.map((n) => (
               <option key={n} value={n} />
@@ -105,11 +124,11 @@ export default function MealForm() {
         <div className="row-fields">
           <label className="field">
             <span>Date</span>
-            <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+            <input type="date" value={date} onChange={(e) => e.target.value && set({ date: e.target.value })} />
           </label>
           <label className="field">
             <span>Time</span>
-            <input type="time" value={time} onChange={(e) => e.target.value && setTime(e.target.value)} />
+            <input type="time" value={time} onChange={(e) => e.target.value && set({ time: e.target.value })} />
           </label>
         </div>
         {(prevTooSoon || nextTooSoon) && (
@@ -221,7 +240,7 @@ export default function MealForm() {
       <section className="card">
         <label className="field first">
           <span>Notes</span>
-          <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Restaurant, brand, how it was cooked…" />
+          <textarea rows={2} value={note} onChange={(e) => set({ note: e.target.value })} placeholder="Restaurant, brand, how it was cooked…" />
         </label>
       </section>
 

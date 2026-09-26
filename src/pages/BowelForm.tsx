@@ -1,10 +1,18 @@
-import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
-import { Header, Segmented } from '../components/ui';
+import { DraftNotice, Header, Segmented } from '../components/ui';
 import { BRISTOL } from '../data/bristol';
 import { db } from '../db/db';
 import { nowTime, today } from '../lib/dates';
+import { useDraft } from '../lib/draft';
+
+interface BowelFields {
+  date: string;
+  time: string;
+  bristol: number;
+  urgency: number;
+  note: string;
+}
 
 export default function BowelForm() {
   const { id } = useParams();
@@ -12,34 +20,30 @@ export default function BowelForm() {
   const nav = useNavigate();
   const isNew = id === 'new';
 
-  const [date, setDate] = useState(params.get('date') ?? today());
-  const [time, setTime] = useState(nowTime());
-  const [bristol, setBristol] = useState(4);
-  const [urgency, setUrgency] = useState(0);
-  const [note, setNote] = useState('');
+  const draft = useDraft<BowelFields>(
+    `bowel:${id}`,
+    () => ({ date: params.get('date') ?? today(), time: nowTime(), bristol: 4, urgency: 0, note: '' }),
+    isNew
+      ? undefined
+      : () => db.bowel.get(Number(id)).then((b) => b && { date: b.date, time: b.time, bristol: b.bristol, urgency: b.urgency, note: b.note ?? '' }),
+  );
 
-  useEffect(() => {
-    if (isNew) return;
-    db.bowel.get(Number(id)).then((b) => {
-      if (!b) return;
-      setDate(b.date);
-      setTime(b.time);
-      setBristol(b.bristol);
-      setUrgency(b.urgency);
-      setNote(b.note ?? '');
-    });
-  }, [id, isNew]);
+  if (!draft.value) return null;
+  const { date, time, bristol, urgency, note } = draft.value;
+  const set = draft.set;
 
   const save = async () => {
     const entry = { date, time, bristol, urgency, note: note.trim() || undefined };
     if (isNew) await db.bowel.add(entry);
     else await db.bowel.update(Number(id), entry);
+    draft.clear();
     nav(-1);
   };
 
   const remove = async () => {
     if (!confirm('Delete this entry?')) return;
     await db.bowel.delete(Number(id));
+    draft.clear();
     nav(-1);
   };
 
@@ -56,15 +60,16 @@ export default function BowelForm() {
           )
         }
       />
+      {draft.restored && <DraftNotice onDiscard={draft.discard} />}
       <section className="card">
         <div className="row-fields">
           <label className="field">
             <span>Date</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <input type="date" value={date} onChange={(e) => e.target.value && set({ date: e.target.value })} />
           </label>
           <label className="field">
             <span>Time</span>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <input type="time" value={time} onChange={(e) => e.target.value && set({ time: e.target.value })} />
           </label>
         </div>
       </section>
@@ -72,7 +77,7 @@ export default function BowelForm() {
         <h2>Bristol stool type</h2>
         <div className="bristol">
           {BRISTOL.map((b) => (
-            <button key={b.type} className={`bristol-opt b${b.type} ${bristol === b.type ? 'on' : ''}`} onClick={() => setBristol(b.type)}>
+            <button key={b.type} className={`bristol-opt b${b.type} ${bristol === b.type ? 'on' : ''}`} onClick={() => set({ bristol: b.type })}>
               <span className="bristol-num">{b.type}</span>
               <span className="grow">
                 <span className="row-title">{b.short}</span>
@@ -86,7 +91,7 @@ export default function BowelForm() {
         <h2>Urgency</h2>
         <Segmented
           value={urgency}
-          onChange={setUrgency}
+          onChange={(v) => set({ urgency: v })}
           options={[
             { value: 0, label: 'None' },
             { value: 1, label: 'Mild' },
@@ -96,7 +101,7 @@ export default function BowelForm() {
         />
         <label className="field">
           <span>Notes</span>
-          <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Incomplete emptying, straining, mucus…" />
+          <textarea rows={2} value={note} onChange={(e) => set({ note: e.target.value })} placeholder="Incomplete emptying, straining, mucus…" />
         </label>
       </section>
       <div className="actions">

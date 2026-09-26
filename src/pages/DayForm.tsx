@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Header, Segmented, Slider } from '../components/ui';
+import { DraftNotice, Header, Segmented, Slider } from '../components/ui';
 import { db } from '../db/db';
 import { formatDate, today } from '../lib/dates';
+import { useDraft } from '../lib/draft';
 import type { DayLog } from '../types';
 
 const MOODS = [
@@ -16,28 +16,26 @@ const MOODS = [
 export default function DayForm() {
   const { date = today() } = useParams();
   const nav = useNavigate();
-  const [d, setD] = useState<DayLog>({ date, overall: 5, stress: 3, sleepHours: 7, sleepQuality: 3, exerciseMin: 0, water: 6 });
-  const [loaded, setLoaded] = useState(false);
+  const draft = useDraft<DayLog>(
+    `day:${date}`,
+    () => ({ date, overall: 5, stress: 3, sleepHours: 7, sleepQuality: 3, exerciseMin: 0, water: 6 }),
+    () => db.days.get(date),
+  );
 
-  useEffect(() => {
-    db.days.get(date).then((existing) => {
-      if (existing) setD(existing);
-      setLoaded(true);
-    });
-  }, [date]);
-
-  const set = (patch: Partial<DayLog>) => setD({ ...d, ...patch });
+  if (!draft.value) return null;
+  const d = draft.value;
+  const set = draft.set;
 
   const save = async () => {
     await db.days.put({ ...d, date, notes: d.notes?.trim() || undefined });
+    draft.clear();
     nav(-1);
   };
-
-  if (!loaded) return null;
 
   return (
     <>
       <Header title={`Check-in · ${formatDate(date)}`} back />
+      {draft.restored && <DraftNotice onDiscard={draft.discard} />}
       <section className="card">
         <Slider label="Overall, how was your gut today?" value={d.overall ?? 5} onChange={(v) => set({ overall: v })} lowText="awful" highText="great" />
         <div className="field">

@@ -440,6 +440,17 @@ button:disabled {
 .quick-icon {
   font-size: 22px;
 }
+.quick-btn {
+  position: relative;
+}
+.quick-draft {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+}
 
 /* ── Levels ── */
 .dot {
@@ -1080,6 +1091,20 @@ button:disabled {
 }
 .warn-callout {
   background: var(--mod-soft);
+}
+.draft-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.draft-discard {
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-weight: 600;
+  padding: 6px 4px;
 }
 .hint {
   font-size: 13px;

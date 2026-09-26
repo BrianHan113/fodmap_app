@@ -106,3 +106,15 @@ export function Segmented<T extends string | number>({
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="empty">{children}</p>;
 }
+
+/** Shown when a form reopens with unsaved changes from an earlier visit. */
+export function DraftNotice({ onDiscard }: { onDiscard: () => void }) {
+  return (
+    <div className="callout draft-notice">
+      <span className="grow">Unsaved changes restored.</span>
+      <button className="draft-discard" onClick={onDiscard}>
+        Discard
+      </button>
+    </div>
+  );
+}

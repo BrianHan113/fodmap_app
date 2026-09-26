@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useNavigate } from 'react-router-dom';
 import { DayTimeline } from '../components/DayTimeline';
 import { Icon } from '../components/Icon';
+import { QuickLog } from '../components/QuickLog';
 import { LastMeal } from '../components/LastMeal';
 import { Header } from '../components/ui';
 import { CHALLENGE_BY_GROUP, CHALLENGES } from '../data/challenges';
@@ -28,20 +29,7 @@ export default function Today() {
       />
       <PhaseCard settings={settings} />
       <LastMeal />
-      <div className="quick">
-        <Link to={`/meal/new?date=${date}`} className="quick-btn">
-          <span className="quick-icon">🍽️</span>Meal
-        </Link>
-        <Link to={`/symptoms/new?date=${date}`} className="quick-btn">
-          <span className="quick-icon">🌡️</span>Symptoms
-        </Link>
-        <Link to={`/bowel/new?date=${date}`} className="quick-btn">
-          <span className="quick-icon">🚽</span>Bowel
-        </Link>
-        <Link to={`/day/${date}`} className="quick-btn">
-          <span className="quick-icon">📝</span>Check-in
-        </Link>
-      </div>
+      <QuickLog date={date} />
       <DayTimeline date={date} />
     </>
   );

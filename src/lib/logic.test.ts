@@ -175,6 +175,33 @@ describe('FODMAP load', () => {
     expect(stackingWarnings([{ foodId: avo.id, servingIndex: 2, qty: 1 }], foodMap)).toHaveLength(0);
   });
 
+  it('adds up low servings that share a FODMAP', () => {
+    const strawberries = byName('Strawberries'); // 65g low, 130g moderate fructose
+    const mango = byName('Mango'); // 40g low, 80g high fructose
+    const mandarin = byName('Mandarin'); // 90g low, 100g high fructose
+    const low = (f: Food) => ({ foodId: f.id, servingIndex: 0, qty: 1 });
+    expect(computeLoad([low(strawberries)], foodMap).fructose).toBeCloseTo(0.5);
+    // A low amount on its own always stays below a moderate load, even just under a high tier.
+    expect(computeLoad([low(mandarin)], foodMap).fructose).toBeLessThan(1);
+    expect(stackingWarnings([low(mandarin)], foodMap)).toHaveLength(0);
+
+    const w = stackingWarnings([low(strawberries), low(mango)], foodMap);
+    expect(w).toHaveLength(1);
+    expect(w[0]).toMatchObject({ group: 'fructose', level: 'moderate', allLow: true });
+    const fruitSalad = [low(strawberries), low(mango), low(mandarin), low(byName('Raspberries')), low(byName('Orange'))];
+    expect(computeLoad(fruitSalad, foodMap).fructose).toBeGreaterThanOrEqual(2);
+    expect(stackingWarnings(fruitSalad, foodMap)[0]).toMatchObject({ group: 'fructose', level: 'high' });
+  });
+
+  it('does not warn when a small extra does not change the level', () => {
+    const items = [
+      { foodId: avo.id, servingIndex: 0, qty: 1 }, // low, half-way to moderate sorbitol
+      { foodId: corn.id, servingIndex: 1, qty: 1 }, // sorbitol moderate
+    ];
+    expect(computeLoad(items, foodMap).sorbitol).toBeCloseTo(1.5);
+    expect(stackingWarnings(items, foodMap)).toHaveLength(0);
+  });
+
   it('rates the total amount eaten, not the picked serving', () => {
     // 2 × 1/8 avocado = 60g = the tested moderate tier.
     const twoEighths = resolveItem({ foodId: avo.id, servingIndex: 0, qty: 2 }, foodMap);

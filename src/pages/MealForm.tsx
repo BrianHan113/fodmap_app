@@ -205,8 +205,9 @@ export default function MealForm() {
             <LoadBars load={load} />
             {warnings.map((w) => (
               <div key={w.group} className="callout warn-callout">
-                <b>{GROUP_LABEL[w.group]} is stacking up.</b> {w.foods.join(', ')} together add up to a high {GROUP_LABEL[w.group].toLowerCase()}{' '}
-                load. Consider a smaller portion or eating one of them at another meal.
+                <b>{GROUP_LABEL[w.group]} is stacking up.</b> {w.foods.join(', ')} together add up to a {w.level}{' '}
+                {GROUP_LABEL[w.group].toLowerCase()} load{w.allLow && ', even though each is low on its own'}. Consider smaller portions or
+                eating some of them at another meal.
               </div>
             ))}
           </section>

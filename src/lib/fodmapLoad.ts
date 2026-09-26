@@ -32,6 +32,38 @@ export interface ResolvedItem {
   largestTier?: Serving;
   /** The next tested amount above the low limit (moderate/high), if known. */
   nextTier?: Serving;
+  /**
+   * What this item adds to each FODMAP group's meal load (1 = a moderate amount, 2 = high).
+   * Low amounts add a fraction, so several low foods sharing a FODMAP can add up past low.
+   */
+  load: Partial<Record<Group, number>>;
+}
+
+/**
+ * Load from a low amount, estimated from the next tested (moderate/high) amount, since low tiers
+ * don't say which FODMAPs they contain. A group that is moderate at the next amount reaches 1
+ * there. A group that jumps straight to high is assumed to turn moderate halfway between the
+ * largest low amount and the high one, then rise to 2 at the high amount. Either way an amount
+ * up to the tested low limit stays below 1.
+ */
+function lowAmountLoad(grams: number, largestLow: number, next: Serving): Partial<Record<Group, number>> {
+  const out: Partial<Record<Group, number>> = {};
+  for (const [g, lvl] of Object.entries(next.groups) as [Group, Level][]) {
+    if (lvl === 'moderate') {
+      out[g] = grams / next.grams!;
+      continue;
+    }
+    const cutoff = (largestLow + next.grams!) / 2;
+    out[g] = grams <= cutoff ? grams / cutoff : 1 + (grams - cutoff) / (next.grams! - cutoff);
+  }
+  return out;
+}
+
+/** Load from a moderate/high tier, scaled by how many times its amount was eaten. */
+function tierLoad(tier: Serving, factor: number): Partial<Record<Group, number>> {
+  const out: Partial<Record<Group, number>> = {};
+  for (const [g, lvl] of Object.entries(tier.groups) as [Group, Level][]) out[g] = LEVEL_SCORE[lvl] * Math.max(1, factor);
+  return out;
 }
 
 /**
@@ -43,14 +75,19 @@ export interface ResolvedItem {
 export function resolveItem(item: MealItem, foods: Map<string, Food>): ResolvedItem {
   const food = foods.get(item.foodId);
   const picked = food?.servings[item.servingIndex];
-  if (!food || !picked) return { food, picked, level: 'low', groups: {}, factor: 0, beyondTested: false };
-  if (food.fodmapFree) return { food, picked, tier: picked, level: 'low', groups: {}, factor: 0, beyondTested: false, grams: picked.grams && picked.grams * item.qty };
+  if (!food || !picked) return { food, picked, level: 'low', groups: {}, factor: 0, beyondTested: false, load: {} };
+  if (food.fodmapFree)
+    return { food, picked, tier: picked, level: 'low', groups: {}, factor: 0, beyondTested: false, load: {}, grams: picked.grams && picked.grams * item.qty };
 
   const tiers = food.servings;
   const allWeighed = tiers.every((t) => t.grams !== undefined) && picked.grams !== undefined;
   if (!allWeighed) {
     // Without weights, fall back to "picked serving × qty"; flag going past the last low tier.
     const isLargest = item.servingIndex === tiers.length - 1;
+    // A low serving is assumed to be about half the next tested amount in the list.
+    const next = tiers.find((t, i) => i > item.servingIndex && t.level !== 'low');
+    const load: Partial<Record<Group, number>> = {};
+    if (picked.level === 'low' && next) for (const g of Object.keys(next.groups) as Group[]) load[g] = 0.5 * item.qty;
     return {
       food,
       picked,
@@ -60,6 +97,7 @@ export function resolveItem(item: MealItem, foods: Map<string, Food>): ResolvedI
       factor: item.qty,
       beyondTested: picked.level === 'low' && isLargest && item.qty > 1,
       largestTier: tiers[tiers.length - 1],
+      load: picked.level === 'low' ? load : tierLoad(picked, item.qty),
     };
   }
 
@@ -83,49 +121,63 @@ export function resolveItem(item: MealItem, foods: Map<string, Food>): ResolvedI
     beyondTested,
     largestTier: largestLow,
     nextTier,
+    load: matched.level !== 'low' ? tierLoad(matched, factor) : nextTier ? lowAmountLoad(grams, largestLow!.grams!, nextTier) : {},
   };
 }
 
 /**
  * Per-group load for a list of items: a moderate tier adds 1, a high tier 2, scaled by how many
- * times that tier's amount was eaten.
+ * times that tier's amount was eaten. Low amounts add their share (see lowAmountLoad).
  */
 export function computeLoad(items: MealItem[], foods: Map<string, Food>): Load {
   const load = emptyLoad();
   for (const item of items) {
-    const r = resolveItem(item, foods);
-    for (const [g, lvl] of Object.entries(r.groups) as [Group, Level][]) {
-      load[g] += LEVEL_SCORE[lvl] * Math.max(1, r.factor);
-    }
+    for (const [g, v] of Object.entries(resolveItem(item, foods).load) as [Group, number][]) load[g] += v;
   }
   return load;
 }
 
+/** Slack for float sums, so e.g. three thirds of a moderate amount still count as moderate. */
+const EPS = 1e-9;
+
 export function loadLevel(score: number): Level {
-  if (score >= 2) return 'high';
-  if (score >= 1) return 'moderate';
+  if (score >= 2 - EPS) return 'high';
+  if (score >= 1 - EPS) return 'moderate';
   return 'low';
 }
 
 export interface StackWarning {
   group: Group;
   score: number;
+  /** The meal's level for this group, higher than any one of its foods reaches alone. */
+  level: Level;
   foods: string[];
+  /** Every contributing food is low on its own. */
+  allLow: boolean;
 }
 
 /**
- * Low-FODMAP servings are cleared individually, but moderate servings of the same FODMAP
- * from different foods add up. Warn when a group reaches a "high" load from two or more
- * foods; a single food over its limit is already flagged on its own.
+ * Servings are cleared one food at a time, but the same FODMAP from different foods adds up:
+ * several low servings can make a moderate load, and moderate ones a high load. Warn when the
+ * foods together reach a higher level than the biggest contributor does alone; a single food
+ * over its limit is already flagged on its own.
  */
 export function stackingWarnings(items: MealItem[], foods: Map<string, Food>): StackWarning[] {
-  const load = computeLoad(items, foods);
+  const resolved = items.map((i) => resolveItem(i, foods));
   const out: StackWarning[] = [];
   for (const g of GROUPS) {
-    if (load[g] < 2) continue;
-    const contributors = items.filter((i) => resolveItem(i, foods).groups[g]);
+    const contributors = resolved.filter((r) => (r.load[g] ?? 0) > 0);
     if (contributors.length < 2) continue;
-    out.push({ group: g, score: load[g], foods: contributors.map((i) => foods.get(i.foodId)!.name) });
+    const score = contributors.reduce((sum, r) => sum + r.load[g]!, 0);
+    const biggest = Math.max(...contributors.map((r) => r.load[g]!));
+    if (LEVEL_SCORE[loadLevel(score)] <= LEVEL_SCORE[loadLevel(biggest)]) continue;
+    out.push({
+      group: g,
+      score,
+      level: loadLevel(score),
+      foods: contributors.map((r) => r.food!.name),
+      allLow: contributors.every((r) => r.level === 'low' && !r.beyondTested),
+    });
   }
   return out;
 }

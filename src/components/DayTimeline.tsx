@@ -122,7 +122,8 @@ export function DayTimeline({ date }: { date: string }) {
         <section className="card">
           <h2>FODMAP load</h2>
           <LoadBars load={dayLoad} />
-          <p className="muted small">Each moderate serving adds 1, each high serving adds 2. Spread moderate foods across meals.</p>
+          <p className="muted small">Each moderate serving adds 1, each high serving adds 2, and low servings add a share of that. Spread foods with the same
+            FODMAP across meals.</p>
         </section>
       )}
       <section className="card">

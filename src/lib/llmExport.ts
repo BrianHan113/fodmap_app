@@ -43,7 +43,7 @@ Food ratings in the data (low / moderate / high, and which FODMAP groups) come f
 const SCALES = `- Symptoms: bloating, abdominal pain, gas, nausea, each 0–10 (0 = none, 10 = worst). "Worst" = the highest of the four.
 - Bowel movements: Bristol stool type 1–7 (3–4 ideal, 1–2 constipated, 6–7 diarrhoea); urgency 0–3.
 - Daily check-in: overall gut day 0–10 (10 = great), mood 1–5, stress 0–10, sleep hours and quality 1–5, exercise minutes, water glasses.
-- FODMAP ratings are for the total amount eaten (serving × quantity), matched to the nearest tested amount. Meal FODMAP load per group: a moderate amount adds 1, a high amount 2 (≥2 in one meal = high load).
+- FODMAP ratings are for the total amount eaten (serving × quantity), matched to the nearest tested amount. Meal FODMAP load per group: a moderate amount adds 1, a high amount 2, and a low amount a fraction based on how close it is to the tested moderate/high amount (≥1 in one meal = moderate load, ≥2 = high). Stacking = foods sharing a FODMAP reach a higher level together than any of them alone.
 - Nutrition: approximate calories and macros from typical food composition values; carbs include fibre.
 - GL = estimated glycaemic load for the typical serving stated, plus GL per 100g (per 250ml for drinks) to compare foods fairly. Bands: low ≤10, medium 11–19, high ≥20. GL scales with the amount actually eaten and is separate from the FODMAP rating.`;
 
